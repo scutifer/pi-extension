@@ -15,8 +15,6 @@ interface ToolCallProps {
 }
 
 export function ToolCall({ toolCall, showBody = true }: ToolCallProps) {
-  const label = formatToolLabel(toolCall.toolName, toolCall.args);
-
   const statusCls = toolCall.done
     ? toolCall.isError
       ? "tc-status error"
@@ -32,13 +30,12 @@ export function ToolCall({ toolCall, showBody = true }: ToolCallProps) {
   return (
     <div className={bgCls}>
       <div className="tc-header">
-        <span className="tc-name">{toolCall.toolName}</span>
-        <span className="tc-label">{label}</span>
+        <ToolHeader toolName={toolCall.toolName} args={toolCall.args} />
         <span className={statusCls}>
           {toolCall.done ? (toolCall.isError ? "✕" : "✓") : <span className="tc-spinner" />}
         </span>
       </div>
-      {showBody && toolCall.result != null && (
+      {showBody && (
         <div className="tc-body">
           <ToolBody
             toolName={toolCall.toolName}
@@ -50,6 +47,78 @@ export function ToolCall({ toolCall, showBody = true }: ToolCallProps) {
       )}
     </div>
   );
+}
+
+// ── Per-tool header rendering ──
+
+function ToolHeader({ toolName, args }: { toolName: string; args: any }) {
+  switch (toolName) {
+    case "read": {
+      const range =
+        args?.limit != null || args?.offset != null
+          ? ` ${args.offset ?? 1}:${(args.offset ?? 1) + (args.limit ?? 0)}`
+          : "";
+      return (
+        <>
+          <span className="tc-name">read</span>
+          <span className="tc-label">{shortenPath(args?.path)}{range}</span>
+        </>
+      );
+    }
+    case "write":
+      return (
+        <>
+          <span className="tc-name">write</span>
+          <span className="tc-label">{shortenPath(args?.path)}</span>
+        </>
+      );
+    case "edit":
+      return (
+        <>
+          <span className="tc-name">edit</span>
+          <span className="tc-label">{shortenPath(args?.path)}</span>
+        </>
+      );
+    case "bash":
+      return (
+        <>
+          <span className="tc-name">bash</span>
+          <span className="tc-label tc-bash-label">{args?.command ?? ""}</span>
+        </>
+      );
+    case "grep":
+      return (
+        <>
+          <span className="tc-name">grep</span>
+          <span className="tc-label">
+            {args?.pattern ?? ""}{args?.path ? " in " + shortenPath(args.path) : ""}
+          </span>
+        </>
+      );
+    case "find":
+      return (
+        <>
+          <span className="tc-name">find</span>
+          <span className="tc-label">
+            {args?.pattern ?? ""}{args?.path ? " in " + shortenPath(args.path) : ""}
+          </span>
+        </>
+      );
+    case "ls":
+      return (
+        <>
+          <span className="tc-name">ls</span>
+          <span className="tc-label">{shortenPath(args?.path)}</span>
+        </>
+      );
+    default:
+      return (
+        <>
+          <span className="tc-name">{toolName}</span>
+          <span className="tc-label">{formatFallbackLabel(args)}</span>
+        </>
+      );
+  }
 }
 
 // ── Per-tool body rendering ──
@@ -141,29 +210,31 @@ function EditBody({
   isError?: boolean;
 }) {
   const text = extractContentText(result);
-  const diff = result?.details?.diff;
 
   if (isError && text) {
     return <div className="tc-error">{text}</div>;
   }
 
-  if (diff) {
-    return <DiffBlock diff={diff} />;
-  }
+  // Always show old/new from args with red/green styling
+  const hasArgs = args?.oldText || args?.newText;
 
   return (
     <>
-      {args?.old_string && (
-        <pre className="tc-pre tc-diff-old">
-          <code>{args.old_string}</code>
-        </pre>
+      {hasArgs && (
+        <>
+          {args.oldText && (
+            <pre className="tc-pre tc-diff-old">
+              <code>{args.oldText}</code>
+            </pre>
+          )}
+          {args.newText && (
+            <pre className="tc-pre tc-diff-new">
+              <code>{args.newText}</code>
+            </pre>
+          )}
+        </>
       )}
-      {args?.new_string && (
-        <pre className="tc-pre tc-diff-new">
-          <code>{args.new_string}</code>
-        </pre>
-      )}
-      {text && <div className="tc-result-msg">{text}</div>}
+      {text && !hasArgs && <div className="tc-result-msg">{text}</div>}
     </>
   );
 }
@@ -178,7 +249,6 @@ function BashBody({
   isError?: boolean;
 }) {
   const text = extractContentText(result);
-  // Command is already shown in the header label — only show output
   return (
     <>
       {text && (
@@ -331,24 +401,16 @@ function renderGenericArgs(args: any) {
   );
 }
 
-function formatToolLabel(name: string, args: any): string {
+function formatFallbackLabel(args: any): string {
   if (!args) return "";
-  switch (name) {
-    case "read":
-    case "write":
-    case "edit":
-      return shortenPath(args.path);
-    case "bash":
-      return truncateStr(String(args.command ?? ""), 80);
-    case "grep":
-      return `${args.pattern ?? ""} ${args.path ? "in " + shortenPath(args.path) : ""}`.trim();
-    case "find":
-      return `${args.pattern ?? ""} ${args.path ? "in " + shortenPath(args.path) : ""}`.trim();
-    case "ls":
-      return shortenPath(args.path);
-    default:
-      return "";
-  }
+  const entries = Object.entries(args).filter(
+    ([_, v]) => v != null && typeof v === "string",
+  );
+  if (entries.length === 0) return "";
+  return entries
+    .slice(0, 2)
+    .map(([_, v]) => truncateStr(String(v), 40))
+    .join(" ");
 }
 
 function shortenPath(p: string | undefined): string {

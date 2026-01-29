@@ -491,6 +491,12 @@ details[open] > .thinking-summary::before {
   min-width: 0;
 }
 
+.tc-bash-label {
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow: visible;
+}
+
 .tc-status {
   margin-left: auto;
   flex-shrink: 0;
