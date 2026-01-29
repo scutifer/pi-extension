@@ -363,7 +363,7 @@ details[open] > .thinking-summary::before {
 
 .markdown-body pre {
   background: var(--bg-secondary) !important;
-  border: 1px solid var(--border);
+  /* border: 1px solid var(--border); */
   border-radius: var(--radius-md);
   padding: 10px 12px;
   overflow-x: auto;
@@ -470,7 +470,7 @@ details[open] > .thinking-summary::before {
 
 .tc-header {
   display: flex;
-  align-items: center;
+  align-items: start;
   gap: 6px;
   padding: 7px 10px;
   font-family: var(--font-mono);
@@ -485,6 +485,14 @@ details[open] > .thinking-summary::before {
 
 .tc-label {
   color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tc-range {
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -584,6 +592,7 @@ details[open] > .thinking-summary::before {
 .tc-diff-old {
   border-left: 3px solid var(--red);
   padding-left: 8px;
+  border-radius: 0 !important;
 }
 
 .tc-diff-old code { color: var(--red); }
@@ -591,6 +600,7 @@ details[open] > .thinking-summary::before {
 .tc-diff-new {
   border-left: 3px solid var(--green);
   padding-left: 8px;
+  border-radius: 0 !important;
 }
 
 .tc-diff-new code { color: var(--green); }

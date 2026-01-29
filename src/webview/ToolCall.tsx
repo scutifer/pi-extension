@@ -61,7 +61,8 @@ function ToolHeader({ toolName, args }: { toolName: string; args: any }) {
       return (
         <>
           <span className="tc-name">read</span>
-          <span className="tc-label">{shortenPath(args?.path)}{range}</span>
+          <span className="tc-label">{shortenPath(args?.path)}</span>
+          <span className="tc-range">{range}</span>
         </>
       );
     }
