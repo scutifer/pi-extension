@@ -66,8 +66,8 @@ export function Message({ message, viewSettings }: { message: ChatMessage; viewS
   // Assistant
   return (
     <div className="msg msg-assistant">
-      {viewSettings.showThinking && message.thinking && (
-        <details className="thinking-block">
+      {message.thinking && (
+        <details className="thinking-block" open={viewSettings.showThinking || undefined}>
           <summary className="thinking-summary">Thinking</summary>
           <div className="thinking-content">
             <Markdown content={message.thinking} />

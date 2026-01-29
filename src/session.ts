@@ -64,6 +64,32 @@ export class PiSession {
     this.session.setThinkingLevel(level as any);
   }
 
+  async setModel(provider: string, modelId: string) {
+    if (!this.session) return;
+    const registry = (this.session as any).modelRegistry;
+    if (!registry) return;
+    const model = registry.find(provider, modelId);
+    if (model) {
+      await this.session.setModel(model);
+    }
+  }
+
+  getAvailableModels(): Array<{ provider: string; id: string; name: string }> {
+    if (!this.session) return [];
+    const registry = (this.session as any).modelRegistry;
+    if (!registry) return [];
+    try {
+      const models = registry.getAvailable();
+      return models.map((m: any) => ({
+        provider: m.provider,
+        id: m.id,
+        name: m.name,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
   async loadSessionFile(sessionPath: string): Promise<{ name: string }> {
     // Parse the session file to extract cwd and name
     const { cwd: sessionCwd, name } = parseSessionFile(sessionPath);
@@ -164,6 +190,7 @@ export class PiSession {
     const ctx = this.session?.getContextUsage();
     return {
       modelName: model?.name ?? model?.id ?? "unknown",
+      modelId: model?.id ?? "unknown",
       providerName: model?.provider ?? "unknown",
       thinkingLevel: this.session?.thinkingLevel ?? "off",
       isStreaming: this.session?.isStreaming ?? false,
@@ -180,6 +207,7 @@ export class PiSession {
       cost: stats?.cost,
       contextPercent: ctx?.percent,
       contextWindow: ctx?.contextWindow,
+      availableModels: this.getAvailableModels(),
     };
   }
 

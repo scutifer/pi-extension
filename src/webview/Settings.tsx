@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type { SessionState } from "./types";
 
 export interface ViewSettings {
@@ -10,7 +10,10 @@ interface SettingsProps {
   state: SessionState;
   viewSettings: ViewSettings;
   onViewSettingsChange: (settings: ViewSettings) => void;
-  onSessionChange: (change: { thinkingLevel?: string }) => void;
+  onSessionChange: (change: {
+    thinkingLevel?: string;
+    model?: { provider: string; modelId: string };
+  }) => void;
   onClose: () => void;
 }
 
@@ -30,6 +33,30 @@ export function SettingsDialog({
     [onClose],
   );
 
+  // Group models by provider
+  const modelsByProvider = useMemo(() => {
+    const map = new Map<string, Array<{ id: string; name: string }>>();
+    for (const m of state.availableModels ?? []) {
+      if (!map.has(m.provider)) map.set(m.provider, []);
+      map.get(m.provider)!.push({ id: m.id, name: m.name });
+    }
+    return map;
+  }, [state.availableModels]);
+
+  const providers = useMemo(() => Array.from(modelsByProvider.keys()), [modelsByProvider]);
+
+  const currentModelKey = `${state.providerName}::${state.modelId}`;
+
+  const handleModelChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const [provider, modelId] = e.target.value.split("::");
+      if (provider && modelId) {
+        onSessionChange({ model: { provider, modelId } });
+      }
+    },
+    [onSessionChange],
+  );
+
   return (
     <div className="settings-overlay" onClick={handleOverlayClick}>
       <div className="settings-dialog">
@@ -40,16 +67,26 @@ export function SettingsDialog({
           </button>
         </div>
         <div className="settings-body">
-          {/* Model & Provider (read-only display) */}
+          {/* Model */}
           <div className="settings-section">
             <div className="settings-section-title">Model</div>
             <div className="settings-row">
-              <span className="settings-label">Provider</span>
-              <span className="settings-value">{state.providerName}</span>
-            </div>
-            <div className="settings-row">
               <span className="settings-label">Model</span>
-              <span className="settings-value">{state.modelName}</span>
+              <select
+                className="settings-select"
+                value={currentModelKey}
+                onChange={handleModelChange}
+              >
+                {providers.map((provider) => (
+                  <optgroup key={provider} label={provider}>
+                    {modelsByProvider.get(provider)!.map((m) => (
+                      <option key={`${provider}::${m.id}`} value={`${provider}::${m.id}`}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
             </div>
             <div className="settings-row">
               <span className="settings-label">Thinking</span>

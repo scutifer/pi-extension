@@ -472,7 +472,7 @@ details[open] > .thinking-summary::before {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px 0px;
+  padding: 7px 10px;
   font-family: var(--font-mono);
   font-size: 0.9em;
 }

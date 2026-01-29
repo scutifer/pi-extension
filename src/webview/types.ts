@@ -4,7 +4,8 @@ export type WebviewToExtension =
   | { type: "abort" }
   | { type: "newSession" }
   | { type: "getState" }
-  | { type: "setThinkingLevel"; level: string };
+  | { type: "setThinkingLevel"; level: string }
+  | { type: "setModel"; provider: string; modelId: string };
 
 // Messages from extension host → webview
 export type ExtensionToWebview =
@@ -27,6 +28,7 @@ export interface HistoryMessage {
 
 export interface SessionState {
   modelName: string;
+  modelId: string;
   providerName: string;
   thinkingLevel: string;
   isStreaming: boolean;
@@ -43,6 +45,7 @@ export interface SessionState {
   cost?: number;
   contextPercent?: number;
   contextWindow?: number;
+  availableModels?: Array<{ provider: string; id: string; name: string }>;
 }
 
 // Serializable subset of agent events we forward to the webview

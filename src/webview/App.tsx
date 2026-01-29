@@ -256,6 +256,7 @@ const initialState: AppState = {
   messages: [],
   sessionState: {
     modelName: "…",
+    modelId: "",
     providerName: "…",
     thinkingLevel: "off",
     isStreaming: false,
@@ -400,6 +401,9 @@ export function App() {
           onSessionChange={(change) => {
             if (change.thinkingLevel) {
               vscode.postMessage({ type: "setThinkingLevel", level: change.thinkingLevel });
+            }
+            if (change.model) {
+              vscode.postMessage({ type: "setModel", provider: change.model.provider, modelId: change.model.modelId });
             }
           }}
           onClose={() => setSettingsOpen(false)}
