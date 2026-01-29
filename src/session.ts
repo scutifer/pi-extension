@@ -59,6 +59,11 @@ export class PiSession {
     await this.session.newSession();
   }
 
+  setThinkingLevel(level: string) {
+    if (!this.session) return;
+    this.session.setThinkingLevel(level as any);
+  }
+
   async loadSessionFile(sessionPath: string): Promise<{ name: string }> {
     // Parse the session file to extract cwd and name
     const { cwd: sessionCwd, name } = parseSessionFile(sessionPath);

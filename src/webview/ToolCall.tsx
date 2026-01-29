@@ -11,9 +11,10 @@ interface ToolCallProps {
     isError?: boolean;
     done: boolean;
   };
+  showBody?: boolean;
 }
 
-export function ToolCall({ toolCall }: ToolCallProps) {
+export function ToolCall({ toolCall, showBody = true }: ToolCallProps) {
   const label = formatToolLabel(toolCall.toolName, toolCall.args);
 
   const statusCls = toolCall.done
@@ -37,7 +38,7 @@ export function ToolCall({ toolCall }: ToolCallProps) {
           {toolCall.done ? (toolCall.isError ? "✕" : "✓") : <span className="tc-spinner" />}
         </span>
       </div>
-      {toolCall.result != null && (
+      {showBody && toolCall.result != null && (
         <div className="tc-body">
           <ToolBody
             toolName={toolCall.toolName}

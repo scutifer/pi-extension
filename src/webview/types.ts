@@ -3,7 +3,8 @@ export type WebviewToExtension =
   | { type: "prompt"; text: string }
   | { type: "abort" }
   | { type: "newSession" }
-  | { type: "getState" };
+  | { type: "getState" }
+  | { type: "setThinkingLevel"; level: string };
 
 // Messages from extension host → webview
 export type ExtensionToWebview =

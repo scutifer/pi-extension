@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { Markdown } from "./Markdown";
 import { ToolCall } from "./ToolCall";
+import type { ViewSettings } from "./Settings";
 
 interface ChatMessage {
   id: string;
@@ -33,7 +34,7 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export function Message({ message }: { message: ChatMessage }) {
+export function Message({ message, viewSettings }: { message: ChatMessage; viewSettings: ViewSettings }) {
   if (message.role === "system") {
     return (
       <div className="msg msg-system">
@@ -65,7 +66,7 @@ export function Message({ message }: { message: ChatMessage }) {
   // Assistant
   return (
     <div className="msg msg-assistant">
-      {message.thinking && (
+      {viewSettings.showThinking && message.thinking && (
         <details className="thinking-block">
           <summary className="thinking-summary">Thinking</summary>
           <div className="thinking-content">
@@ -74,7 +75,7 @@ export function Message({ message }: { message: ChatMessage }) {
         </details>
       )}
       {message.toolCalls.map((tc) => (
-        <ToolCall key={tc.toolCallId} toolCall={tc} />
+        <ToolCall key={tc.toolCallId} toolCall={tc} showBody={viewSettings.showToolBodies} />
       ))}
       {message.text && (
         <div className="msg-text">

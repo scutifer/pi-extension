@@ -164,6 +164,10 @@ export class PiPanel {
         }
         this.postMessage({ type: "state", state: this.session.getState() });
         break;
+      case "setThinkingLevel":
+        await this.session.setThinkingLevel(msg.level);
+        this.postMessage({ type: "state", state: this.session.getState() });
+        break;
     }
   }
 

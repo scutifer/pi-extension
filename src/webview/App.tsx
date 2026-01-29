@@ -1,6 +1,7 @@
-import { useEffect, useReducer, useRef, useCallback } from "react";
+import { useEffect, useReducer, useRef, useCallback, useState } from "react";
 import { Message } from "./Message";
 import { StatusBar } from "./StatusBar";
+import { SettingsDialog, type ViewSettings } from "./Settings";
 import styles from "./styles.css";
 import type {
   AgentSessionEventData,
@@ -266,8 +267,15 @@ const initialState: AppState = {
   currentAssistantId: null,
 };
 
+const defaultViewSettings: ViewSettings = {
+  showThinking: true,
+  showToolBodies: true,
+};
+
 export function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [viewSettings, setViewSettings] = useState<ViewSettings>(defaultViewSettings);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -341,7 +349,7 @@ export function App() {
           </div>
         )}
         {state.messages.map((msg) => (
-          <Message key={msg.id} message={msg} />
+          <Message key={msg.id} message={msg} viewSettings={viewSettings} />
         ))}
         <div ref={messagesEndRef} />
       </div>
@@ -379,8 +387,24 @@ export function App() {
             )}
           </div>
         </div>
-        <StatusBar state={state.sessionState} />
+        <StatusBar
+          state={state.sessionState}
+          onSettingsOpen={() => setSettingsOpen(true)}
+        />
       </div>
+      {settingsOpen && (
+        <SettingsDialog
+          state={state.sessionState}
+          viewSettings={viewSettings}
+          onViewSettingsChange={setViewSettings}
+          onSessionChange={(change) => {
+            if (change.thinkingLevel) {
+              vscode.postMessage({ type: "setThinkingLevel", level: change.thinkingLevel });
+            }
+          }}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 }
