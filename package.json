@@ -1,0 +1,40 @@
+{
+  "name": "pi-extension",
+  "displayName": "Pi Coding Agent",
+  "description": "VSCode extension for the Pi coding agent",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "pi.openChat",
+        "title": "Pi: Open Chat"
+      },
+      {
+        "command": "pi.resumeSession",
+        "title": "Pi: Resume Session"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "@mariozechner/pi-coding-agent": "^0.50.3",
+    "marked": "^17.0.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
