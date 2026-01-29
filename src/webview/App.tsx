@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useCallback, useState } from "react";
+import React, { useEffect, useReducer, useRef, useCallback, useState } from "react";
 import { Message } from "./Message";
 import { StatusBar } from "./StatusBar";
 import { SettingsDialog, type ViewSettings } from "./Settings";

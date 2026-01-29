@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import type { SessionState } from "./types";
 
 export interface ViewSettings {

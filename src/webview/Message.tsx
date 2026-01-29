@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import React, { useCallback } from "react";
 import { Markdown } from "./Markdown";
 import { ToolCall } from "./ToolCall";
 import type { ViewSettings } from "./Settings";
@@ -13,6 +13,7 @@ interface ChatMessage {
     toolName: string;
     args: any;
     result?: any;
+    details?: any;
     isError?: boolean;
     done: boolean;
   }[];

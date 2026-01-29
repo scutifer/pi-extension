@@ -22,6 +22,7 @@ export interface HistoryMessage {
     toolName: string;
     args: any;
     result?: any;
+    details?: any;
     isError?: boolean;
   }[];
 }

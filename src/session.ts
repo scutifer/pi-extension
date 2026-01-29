@@ -2,6 +2,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { execSync } from "child_process";
 import type { AgentSessionEventData, HistoryMessage, SerializedContent } from "./webview/types";
+import { log } from "./extension";
 
 // Dynamic import since pi-coding-agent is ESM
 let piModule: typeof import("@mariozechner/pi-coding-agent") | null = null;
@@ -114,9 +115,7 @@ export class PiSession {
     const entries = this.session.sessionManager.getEntries();
     const result: HistoryMessage[] = [];
 
-    for (const entry of entries) {
-      const e = entry as any;
-
+    for (const e of entries) {
       if (e.type === "message") {
         const msg = e.message;
         if (!msg) continue;
@@ -154,12 +153,15 @@ export class PiSession {
           // Attach result to the last assistant's matching tool call
           for (let i = result.length - 1; i >= 0; i--) {
             if (result[i].role === "assistant") {
-              const tc = result[i].toolCalls.find(
+              const idx = result[i].toolCalls.findIndex(
                 (t) => t.toolCallId === msg.toolCallId,
               );
-              if (tc) {
-                tc.result = msg.content;
-                tc.isError = msg.isError;
+              if (idx >= 0) {
+                result[i].toolCalls[idx].result = msg.content;
+                result[i].toolCalls[idx].isError = msg.isError;
+                result[i].toolCalls[idx].details = msg.details;
+              } else {
+                log(`Could not find tool call ${msg.toolCallId} in assistant message ${JSON.stringify(result[i])}`);
               }
               break;
             }

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import React, { useState } from "react";
 
-const TRUNCATE_LINES = 20;
+const TRUNCATE_LINES = 10;
 
 interface ToolCallProps {
   toolCall: {
@@ -8,6 +8,7 @@ interface ToolCallProps {
     toolName: string;
     args: any;
     result?: any;
+    details?: any;
     isError?: boolean;
     done: boolean;
   };
@@ -26,6 +27,8 @@ export function ToolCall({ toolCall, showBody = true }: ToolCallProps) {
       ? "tc tc-error-bg"
       : "tc tc-success-bg"
     : "tc";
+
+  // console.log({ toolCall });
 
   return (
     <div className={bgCls}>

@@ -294,15 +294,6 @@ body {
   opacity: 1;
 }
 
-.thinking-summary::before {
-  content: "▸ ";
-  font-size: 0.8em;
-}
-
-details[open] > .thinking-summary::before {
-  content: "▾ ";
-}
-
 .thinking-summary::-webkit-details-marker {
   display: none;
 }
@@ -1081,6 +1072,9 @@ details[open] > .thinking-summary::before {
   cursor: pointer;
   outline: none;
   transition: border-color 0.12s;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .settings-select:focus {

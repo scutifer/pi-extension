@@ -25,6 +25,7 @@
     "watch": "node esbuild.mjs --watch"
   },
   "devDependencies": {
+    "@types/node": "^25.1.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/vscode": "^1.85.0",
