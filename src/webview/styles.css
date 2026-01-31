@@ -1253,106 +1253,82 @@ body {
   border-radius: 3px;
 }
 
-/* ── Tree Node ── */
-.tree-node {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 1px 12px;
+/* ── Tree Row ── */
+.tree-row {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 12px;
   cursor: pointer;
-  font-size: 13px;
-  line-height: 1.5;
-  transition: background 0.08s;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.08s;
 }
 
-.tree-node:hover,
-.tree-node-selected {
+.tree-row:hover,
+.tree-row-selected {
   background: var(--bg-hover);
 }
 
-.tree-node-selected {
+.tree-row-selected {
   background: var(--bg-elevated);
 }
 
-.tree-node-inactive > *:not(.tree-node-trunk) {
-  opacity: 0.45;
+.tree-row-inactive {
+  opacity: 0.4;
 }
 
-.tree-node-inactive:hover > *:not(.tree-node-trunk),
-.tree-node-inactive.tree-node-selected > *:not(.tree-node-trunk) {
-  opacity: 0.7;
+.tree-row-inactive:hover,
+.tree-row-inactive.tree-row-selected {
+  opacity: 0.65;
 }
 
-.tree-node-tool > *:not(.tree-node-trunk) {
-  opacity: 0.45;
-}
-
-.tree-node-tool:hover > *:not(.tree-node-trunk),
-.tree-node-tool.tree-node-selected > *:not(.tree-node-trunk) {
-  opacity: 0.75;
-}
-
-.tree-node-trunk {
-  font-family: var(--font-mono);
-  font-size: 12px;
+.tree-trunk {
   color: var(--text-muted);
-  flex-shrink: 0;
   white-space: pre;
   user-select: none;
 }
 
-.tree-node-role {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  flex-shrink: 0;
-  white-space: nowrap;
-  min-width: 65px;
-  text-align: right;
+.tree-marker {
+  color: var(--accent);
 }
 
-.tree-node-role-user {
-  color: rgba(92, 207, 127, 0.6);
-}
-
-.tree-node-role-assistant {
-  color: rgba(124, 138, 255, 0.55);
-}
-
-.tree-node-role-compaction {
-  color: var(--red);
-}
-
-.tree-node-role-branch_summary {
-  color: var(--red);
-}
-
-.tree-node-preview-text {
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.tree-node-label {
-  font-size: 11px;
-  font-weight: 600;
+.tree-label {
   color: var(--cyan);
-  background: rgba(86, 200, 216, 0.1);
-  padding: 0 5px;
-  border-radius: 3px;
-  flex-shrink: 0;
+  font-weight: 600;
 }
 
-.tree-node-active-badge {
-  font-size: 10px;
-  font-weight: 700;
+.tree-role-user {
   color: var(--green);
-  flex-shrink: 0;
-  margin-left: auto;
+}
+
+.tree-role-assistant {
+  color: var(--accent);
+}
+
+.tree-role-tool {
+  color: var(--text-muted);
+}
+
+.tree-role-custom {
+  color: var(--yellow);
+}
+
+.tree-role-compaction {
+  color: var(--red);
+}
+
+.tree-content {
+  color: var(--text-secondary);
+}
+
+.tree-content-dim {
+  color: var(--text-muted);
+}
+
+.tree-leaf {
+  color: var(--green);
 }
 
 /* ── Tree Actions ── */

@@ -17,71 +17,12 @@ interface TreeDialogProps {
 
 const PAGE_SIZE = 15;
 
-function roleLabel(node: FlatTreeNode): string {
-  if (node.entryType === "message") {
-    if (node.role === "user") return "user";
-    if (node.role === "assistant") return "assistant";
-    if (node.role === "toolResult") return node.toolName ?? "tool";
-    return node.role ?? "";
-  }
-  return node.entryType.replace(/_/g, " ");
-}
-
-function toolPreview(node: FlatTreeNode): string {
-  const name = node.toolName;
-  const args = node.toolArgs;
-  if (!name) return node.preview;
-
-  switch (name) {
-    case "bash":
-      return args?.command ? truncStr(args.command, 120) : node.preview;
-    case "read":
-      return shortenPath(args?.path) + (args?.offset != null || args?.limit != null
-        ? ` ${args.offset ?? 1}:${(args.offset ?? 1) + (args.limit ?? 0)}`
-        : "");
-    case "write":
-      return shortenPath(args?.path);
-    case "edit":
-      return shortenPath(args?.path);
-    case "grep":
-      return (args?.pattern ?? "") + (args?.path ? " in " + shortenPath(args.path) : "");
-    case "find":
-      return (args?.pattern ?? "") + (args?.path ? " in " + shortenPath(args.path) : "");
-    case "ls":
-      return shortenPath(args?.path);
-    default: {
-      // Generic: show first string arg value
-      if (!args) return node.preview;
-      const vals = Object.values(args).filter((v) => typeof v === "string") as string[];
-      return vals.length > 0 ? truncStr(vals.slice(0, 2).join(" "), 120) : node.preview;
-    }
-  }
-}
-
-function nodePreview(node: FlatTreeNode): string {
-  if (node.role === "toolResult") return toolPreview(node);
-  return node.preview;
-}
-
-function shortenPath(p: string | undefined): string {
-  if (!p) return "";
-  const parts = p.split("/");
-  if (parts.length <= 3) return p;
-  return "…/" + parts.slice(-2).join("/");
-}
-
-function truncStr(s: string, max: number): string {
-  const c = s.replace(/\s+/g, " ").trim();
-  if (c.length <= max) return c;
-  return c.slice(0, max - 1) + "…";
-}
-
 function matchesSearch(node: FlatTreeNode, query: string): boolean {
   if (!query) return true;
   const q = query.toLowerCase();
   return (
     node.preview.toLowerCase().includes(q) ||
-    roleLabel(node).includes(q) ||
+    (node.role?.toLowerCase().includes(q) ?? false) ||
     (node.label?.toLowerCase().includes(q) ?? false) ||
     (node.toolName?.toLowerCase().includes(q) ?? false)
   );
@@ -96,6 +37,7 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const customInputRef = useRef<HTMLInputElement>(null);
+
   const multipleRoots = useMemo(() => {
     const rootCount = nodes.filter((n) => n.parentId === null).length;
     return rootCount > 1 || nodes.some((n) => n.isVirtualRootChild);
@@ -121,9 +63,7 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
   }, [nodes]);
 
   useEffect(() => {
-    if (showCustomInput) {
-      customInputRef.current?.focus();
-    }
+    if (showCustomInput) customInputRef.current?.focus();
   }, [showCustomInput]);
 
   useEffect(() => {
@@ -132,15 +72,12 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
     el?.scrollIntoView({ block: "nearest" });
   }, [selectedIdx]);
 
-  const handleSelect = useCallback(
-    (node: FlatTreeNode) => {
-      if (node.isLeaf) return;
-      setActionNode(node);
-      setShowCustomInput(false);
-      setCustomInstructions("");
-    },
-    [],
-  );
+  const handleSelect = useCallback((node: FlatTreeNode) => {
+    if (node.isLeaf) return;
+    setActionNode(node);
+    setShowCustomInput(false);
+    setCustomInstructions("");
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -172,15 +109,7 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
       <div className="tree-dialog">
         <div className="tree-header">
           <div className="tree-search-row">
-            <svg
-              className="tree-search-icon"
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
+            <svg className="tree-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="7" cy="7" r="5" />
               <path d="M11 11l3.5 3.5" />
             </svg>
@@ -192,16 +121,12 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <button className="tree-close-btn" onClick={onClose} title="Close (Esc)">
-              ✕
-            </button>
+            <button className="tree-close-btn" onClick={onClose} title="Close (Esc)">✕</button>
           </div>
         </div>
 
         <div className="tree-list" ref={listRef}>
-          {filtered.length === 0 && (
-            <div className="tree-empty">No matching nodes</div>
-          )}
+          {filtered.length === 0 && <div className="tree-empty">No matching nodes</div>}
           {filtered.map((node, idx) => (
             <TreeNodeRow
               key={node.id}
@@ -217,37 +142,14 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
 
         {actionNode && (
           <div className="tree-actions">
-            <div className="tree-actions-title">
-              Branch from selected node
-            </div>
+            <div className="tree-actions-title">Branch from selected node</div>
             <div className="tree-actions-row">
-              <button
-                className="tree-action-btn"
-                onClick={() => onNavigate(actionNode.id, { summarize: false })}
-              >
-                Branch
-              </button>
-              <button
-                className="tree-action-btn"
-                onClick={() => onNavigate(actionNode.id, { summarize: true })}
-              >
-                Branch + summary
-              </button>
-              <button
-                className="tree-action-btn"
-                onClick={() => {
-                  if (!showCustomInput) {
-                    setShowCustomInput(true);
-                  } else {
-                    onNavigate(actionNode.id, {
-                      summarize: true,
-                      customInstructions,
-                    });
-                  }
-                }}
-              >
-                Branch + summary + instructions
-              </button>
+              <button className="tree-action-btn" onClick={() => onNavigate(actionNode.id, { summarize: false })}>Branch</button>
+              <button className="tree-action-btn" onClick={() => onNavigate(actionNode.id, { summarize: true })}>Branch + summary</button>
+              <button className="tree-action-btn" onClick={() => {
+                if (!showCustomInput) { setShowCustomInput(true); }
+                else { onNavigate(actionNode.id, { summarize: true, customInstructions }); }
+              }}>Branch + summary + instructions</button>
             </div>
             {showCustomInput && (
               <div className="tree-actions-custom">
@@ -261,82 +163,120 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      onNavigate(actionNode.id, {
-                        summarize: true,
-                        customInstructions,
-                      });
+                      onNavigate(actionNode.id, { summarize: true, customInstructions });
                     }
                   }}
                 />
-                <button
-                  className="tree-action-btn tree-action-submit"
-                  onClick={() =>
-                    onNavigate(actionNode.id, {
-                      summarize: true,
-                      customInstructions,
-                    })
-                  }
-                >
-                  Run
-                </button>
+                <button className="tree-action-btn tree-action-submit" onClick={() => onNavigate(actionNode.id, { summarize: true, customInstructions })}>Run</button>
               </div>
             )}
           </div>
         )}
 
         <div className="tree-footer">
-          <span className="tree-footer-hint">
-            ↑↓ navigate · ⌥↑↓ page · Enter select · Esc close
-          </span>
+          <span className="tree-footer-hint">↑↓ navigate · ⌥↑↓ page · Enter select · Esc close</span>
         </div>
       </div>
     </div>
   );
 }
 
+// ── Row rendering (mirrors CLI's getEntryDisplayText) ──
+
 function TreeNodeRow({
-  node,
-  idx,
-  multipleRoots,
-  isSelected,
-  onClick,
-  onMouseEnter,
+  node, idx, multipleRoots, isSelected, onClick, onMouseEnter,
 }: {
-  node: FlatTreeNode;
-  idx: number;
-  multipleRoots: boolean;
-  isSelected: boolean;
-  onClick: () => void;
-  onMouseEnter: () => void;
+  node: FlatTreeNode; idx: number; multipleRoots: boolean;
+  isSelected: boolean; onClick: () => void; onMouseEnter: () => void;
 }) {
   const prefix = buildTreePrefix(node, multipleRoots);
-  const label = roleLabel(node);
-  const preview = nodePreview(node);
-  const isTool = node.role === "toolResult";
+  const isOnActive = node.isOnActiveBranch;
 
   return (
     <div
       data-tree-idx={idx}
-      className={[
-        "tree-node",
-        node.isOnActiveBranch ? "" : "tree-node-inactive",
-        isSelected ? "tree-node-selected" : "",
-        node.isLeaf ? "tree-node-leaf" : "",
-        isTool ? "tree-node-tool" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={`tree-row ${isSelected ? "tree-row-selected" : ""} ${!isOnActive ? "tree-row-inactive" : ""}`}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
     >
-      {prefix && <span className="tree-node-trunk">{prefix}</span>}
-      {node.label
-        ? <span className="tree-node-label">[{node.label}]</span>
-        : <span className={`tree-node-role tree-node-role-${label}`}>{label}</span>}
-      <span className="tree-node-preview-text">{preview}</span>
-      {node.isLeaf && <span className="tree-node-active-badge">🍃</span>}
+      {prefix && <span className="tree-trunk">{prefix}</span>}
+      {isOnActive && <span className="tree-marker">• </span>}
+      {node.label && <span className="tree-label">[{node.label}] </span>}
+      <EntryContent node={node} />
+      {node.isLeaf && <span className="tree-leaf"> 🍃</span>}
     </div>
   );
+}
+
+function EntryContent({ node }: { node: FlatTreeNode }) {
+  if (node.entryType === "message") {
+    if (node.role === "user") {
+      return <><span className="tree-role-user">user: </span><span className="tree-content">{node.preview}</span></>;
+    }
+    if (node.role === "assistant") {
+      return <><span className="tree-role-assistant">assistant: </span><span className="tree-content">{node.preview}</span></>;
+    }
+    if (node.role === "toolResult") {
+      const text = formatToolCall(node.toolName, node.toolArgs);
+      return <span className="tree-role-tool">{text}</span>;
+    }
+    return <span className="tree-content-dim">[{node.role}]</span>;
+  }
+  if (node.entryType === "custom_message") {
+    return <><span className="tree-role-custom">[{node.preview.split(":")[0]}]: </span><span className="tree-content">{node.preview}</span></>;
+  }
+  if (node.entryType === "compaction") {
+    return <span className="tree-role-compaction">[compaction]</span>;
+  }
+  if (node.entryType === "branch_summary") {
+    return <><span className="tree-role-compaction">[branch summary]: </span><span className="tree-content">{node.preview}</span></>;
+  }
+  return <span className="tree-content-dim">[{node.entryType}]</span>;
+}
+
+function formatToolCall(name: string | undefined, args: any): string {
+  if (!name) return "[tool]";
+  if (!args) return `[${name}]`;
+
+  const shortenPath = (p: string): string => {
+    const parts = p.split("/");
+    if (parts.length <= 3) return p;
+    return "…/" + parts.slice(-2).join("/");
+  };
+
+  switch (name) {
+    case "bash": {
+      const raw = String(args.command || "");
+      const cmd = raw.replace(/[\n\t]/g, " ").trim().slice(0, 60);
+      return `[bash: ${cmd}${raw.length > 60 ? "…" : ""}]`;
+    }
+    case "read": {
+      const path = shortenPath(String(args.path || ""));
+      const offset = args.offset as number | undefined;
+      const limit = args.limit as number | undefined;
+      let display = path;
+      if (offset !== undefined || limit !== undefined) {
+        const start = offset ?? 1;
+        const end = limit !== undefined ? start + limit - 1 : "";
+        display += `:${start}${end ? `-${end}` : ""}`;
+      }
+      return `[read: ${display}]`;
+    }
+    case "write":
+      return `[write: ${shortenPath(String(args.path || ""))}]`;
+    case "edit":
+      return `[edit: ${shortenPath(String(args.path || ""))}]`;
+    case "grep":
+      return `[grep: /${args.pattern || ""}/ in ${shortenPath(String(args.path || "."))}]`;
+    case "find":
+      return `[find: ${args.pattern || ""} in ${shortenPath(String(args.path || "."))}]`;
+    case "ls":
+      return `[ls: ${shortenPath(String(args.path || "."))}]`;
+    default: {
+      const s = JSON.stringify(args).slice(0, 40);
+      return `[${name}: ${s}${JSON.stringify(args).length > 40 ? "…" : ""}]`;
+    }
+  }
 }
 
 function buildTreePrefix(node: FlatTreeNode, multipleRoots: boolean): string {

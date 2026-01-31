@@ -335,6 +335,9 @@ function flattenSessionTree(
     ]);
   }
 
+  // Tool call map: toolCallId → {name, args} — built during DFS like the CLI
+  const toolCallMap = new Map<string, { name: string; args: any }>();
+
   while (stack.length > 0) {
     const [node, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild] =
       stack.pop()!;
@@ -345,30 +348,29 @@ function flattenSessionTree(
     const role = entry.type === "message" ? entry.message?.role : undefined;
     const label = node.label ?? (entry.type === "label" ? entry.label : undefined);
 
-    // For toolResult messages, extract tool name and args from parent assistant
-    let toolName: string | undefined;
-    let toolArgs: any;
-    if (role === "toolResult" && entry.message) {
-      const tcId = entry.message.toolCallId;
-      // Walk back through flatAll to find the preceding assistant with matching toolCall
-      if (tcId) {
-        for (let i = flatAll.length - 1; i >= 0; i--) {
-          const prev = flatAll[i];
-          if (prev.role === "assistant") {
-            // Find matching node in allNodes to get entry
-            const prevEntry = allNodes.find((n) => n.entry.id === prev.id)?.entry as any;
-            if (prevEntry?.message?.content && Array.isArray(prevEntry.message.content)) {
-              const tc = prevEntry.message.content.find(
-                (b: any) => (b.type === "toolCall") && (b.id === tcId || b.toolCallId === tcId)
-              );
-              if (tc) {
-                toolName = tc.name ?? tc.toolName;
-                toolArgs = tc.arguments ?? tc.args;
-                break;
-              }
-            }
+    // Extract tool calls from assistant messages into the map
+    if (role === "assistant" && entry.message?.content && Array.isArray(entry.message.content)) {
+      for (const block of entry.message.content) {
+        if (block?.type === "toolCall") {
+          const tcId = block.id ?? block.toolCallId;
+          if (tcId) {
+            toolCallMap.set(tcId, {
+              name: block.name ?? block.toolName ?? "tool",
+              args: block.arguments ?? block.args,
+            });
           }
         }
+      }
+    }
+
+    // For toolResult messages, look up the tool call from the map
+    let toolName: string | undefined;
+    let toolArgs: any;
+    if (role === "toolResult" && entry.message?.toolCallId) {
+      const tc = toolCallMap.get(entry.message.toolCallId);
+      if (tc) {
+        toolName = tc.name;
+        toolArgs = tc.args;
       }
     }
 
@@ -454,8 +456,14 @@ function flattenSessionTree(
 
   const filtered = flatAll.filter((node) => {
     if (EXCLUDED_ENTRY_TYPES.has(node.entryType)) return false;
-    // Hide assistant messages that are purely tool calls (no text content)
-    if (node.role === "assistant" && node.preview.startsWith("Tool call:")) return false;
+    // Hide assistant messages with no text content (only tool calls) — like CLI's hasTextContent check
+    if (node.role === "assistant" && node.id !== leafId) {
+      const srcNode = allNodes.find((n) => n.entry.id === node.id);
+      if (srcNode) {
+        const content = (srcNode.entry as any).message?.content;
+        if (!hasTextContent(content)) return false;
+      }
+    }
     return true;
   });
   if (filtered.length === 0) return [];
@@ -626,6 +634,19 @@ function getCustomMessagePreview(content: any): string {
       .join("");
   }
   return "";
+}
+
+function hasTextContent(content: unknown): boolean {
+  if (typeof content === "string") return content.trim().length > 0;
+  if (Array.isArray(content)) {
+    for (const c of content) {
+      if (typeof c === "object" && c !== null && "type" in c && (c as any).type === "text") {
+        const text = (c as any).text;
+        if (text && text.trim().length > 0) return true;
+      }
+    }
+  }
+  return false;
 }
 
 function trimPreview(text: string, maxLength = 140): string {
