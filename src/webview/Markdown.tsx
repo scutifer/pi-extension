@@ -56,8 +56,14 @@ hljs.registerLanguage("plaintext", plaintext);
 hljs.registerLanguage("text", plaintext);
 
 // Custom renderer that adds highlight.js to fenced code blocks
+let headingCounter = 0;
+
 const highlightExtension: MarkedExtension = {
   renderer: {
+    heading({ text, depth }: { text: string; depth: number }) {
+      const id = `heading-${++headingCounter}`;
+      return `<h${depth} id="${id}" data-toc-depth="${depth}">${text}</h${depth}>`;
+    },
     code({ text, lang }: { text: string; lang?: string }) {
       const language = lang && hljs.getLanguage(lang) ? lang : undefined;
       let highlighted: string;

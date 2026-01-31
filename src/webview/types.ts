@@ -1,3 +1,5 @@
+import type { SessionEntry, SessionManager } from "@mariozechner/pi-coding-agent";
+
 // Messages from webview → extension host
 export type WebviewToExtension =
   | { type: "prompt"; text: string }
@@ -5,13 +7,28 @@ export type WebviewToExtension =
   | { type: "newSession" }
   | { type: "getState" }
   | { type: "setThinkingLevel"; level: string }
-  | { type: "setModel"; provider: string; modelId: string };
+  | { type: "setModel"; provider: string; modelId: string }
+  | {
+      type: "navigateTree";
+      targetId: string;
+      options?: {
+        summarize?: boolean;
+        customInstructions?: string;
+        replaceInstructions?: boolean;
+      };
+    };
 
 // Messages from extension host → webview
 export type ExtensionToWebview =
   | { type: "event"; event: AgentSessionEventData }
   | { type: "state"; state: SessionState }
-  | { type: "history"; messages: HistoryMessage[] };
+  | { type: "history"; messages: HistoryMessage[] }
+  | {
+      type: "navigate_result";
+      editorText?: string;
+      cancelled: boolean;
+      aborted?: boolean;
+    };
 
 export interface HistoryMessage {
   role: "user" | "assistant" | "system";
@@ -47,6 +64,9 @@ export interface SessionState {
   contextPercent?: number;
   contextWindow?: number;
   availableModels?: Array<{ provider: string; id: string; name: string }>;
+  tree: ReturnType<SessionManager['getTree']> | null;
+  leafEntry: SessionEntry | null
+  leafId: string | null
 }
 
 // Serializable subset of agent events we forward to the webview
@@ -95,6 +115,36 @@ export interface SerializedContent {
   toolName?: string;
   toolCallId?: string;
   args?: any;
+}
+
+/** Flattened tree node for the webview tree dialog */
+export interface FlatTreeNode {
+  id: string;
+  parentId: string | null;
+  /** Entry type: message, compaction, branch_summary, etc. */
+  entryType: string;
+  /** Message role if it's a message entry */
+  role?: string;
+  /** Short preview text */
+  preview: string;
+  /** Whether this node is on the active branch (root → leaf path) */
+  isOnActiveBranch: boolean;
+  /** Whether this is the current leaf */
+  isLeaf: boolean;
+  /** Label if any */
+  label?: string;
+  /** ISO timestamp */
+  timestamp: string;
+  /** Indentation level (each level = 3 chars) */
+  indent: number;
+  /** Whether to show connector (├─ or └─) */
+  showConnector: boolean;
+  /** If showConnector, true = last sibling (└─), false = not last (├─) */
+  isLast: boolean;
+  /** Gutter info for each ancestor branch point */
+  gutters: Array<{ position: number; show: boolean }>;
+  /** True if this node is a root under a virtual branching root (multiple roots) */
+  isVirtualRootChild: boolean;
 }
 
 // Declared globally for the webview to access vscode API

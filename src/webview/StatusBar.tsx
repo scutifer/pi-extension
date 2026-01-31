@@ -1,3 +1,4 @@
+import React from "react";
 import type { SessionState } from "./types";
 
 function formatTokens(n: number): string {
@@ -18,9 +19,11 @@ function formatContextWindow(n: number): string {
 export function StatusBar({
   state,
   onSettingsOpen,
+  onTreeOpen,
 }: {
   state: SessionState;
   onSettingsOpen: () => void;
+  onTreeOpen: () => void;
 }) {
   const hasTokens = state.tokens && state.tokens.total > 0;
   const hasCost = state.cost != null && state.cost > 0;
@@ -81,6 +84,20 @@ export function StatusBar({
         <span className="bar-sep">·</span>
         <span className="bar-item bar-thinking">{state.thinkingLevel}</span>
         {state.isStreaming && <span className="bar-streaming" />}
+        <button
+          className="bar-tree-btn"
+          onClick={onTreeOpen}
+          title="Session tree"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+          >
+            <path d="M2 2h2v8h4V8h2v4H4v2H2V2zm6 0h2v4h4v2H8V2z" />
+          </svg>
+        </button>
         <button
           className="bar-settings-btn"
           onClick={onSettingsOpen}

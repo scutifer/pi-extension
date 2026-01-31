@@ -57,7 +57,7 @@ export function Message({ message, viewSettings }: { message: ChatMessage; viewS
 
   if (message.role === "user") {
     return (
-      <div className="msg msg-user">
+      <div className="msg msg-user" id={message.id}>
         <Markdown content={message.text} />
         <CopyButton text={message.text} />
       </div>
@@ -66,7 +66,7 @@ export function Message({ message, viewSettings }: { message: ChatMessage; viewS
 
   // Assistant
   return (
-    <div className="msg msg-assistant">
+    <div className="msg msg-assistant" id={message.id}>
       {message.thinking && (
         <details className="thinking-block" open={viewSettings.showThinking || undefined}>
           <summary className="thinking-summary">Thinking</summary>

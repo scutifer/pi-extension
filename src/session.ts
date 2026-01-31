@@ -1,20 +1,12 @@
 import * as path from "path";
 import * as fs from "fs";
 import { execSync } from "child_process";
-import type { AgentSessionEventData, HistoryMessage, SerializedContent } from "./webview/types";
-import { log } from "./extension";
+import type { AgentSessionEventData, HistoryMessage, SerializedContent } from "./webview/types.js";
+import { log } from "./extension.js";
 
-// Dynamic import since pi-coding-agent is ESM
-let piModule: typeof import("@mariozechner/pi-coding-agent") | null = null;
+import * as pi from "@mariozechner/pi-coding-agent";
 
-async function getPiModule() {
-  if (!piModule) {
-    piModule = await import("@mariozechner/pi-coding-agent");
-  }
-  return piModule;
-}
-
-type AgentSession = import("@mariozechner/pi-coding-agent").AgentSession;
+type AgentSession = pi.AgentSession;
 
 export class PiSession {
   private session: AgentSession | null = null;
@@ -28,7 +20,7 @@ export class PiSession {
     this.cwd = cwd;
     this.gitBranch = this.detectGitBranch(cwd);
 
-    const pi = await getPiModule();
+    // const pi = await getPiModule();
     const { session } = await pi.createAgentSession({ cwd });
     this.session = session;
 
@@ -58,6 +50,18 @@ export class PiSession {
   async newSession() {
     if (!this.session) return;
     await this.session.newSession();
+  }
+
+  async navigateTree(
+    targetId: string,
+    options?: {
+      summarize?: boolean;
+      customInstructions?: string;
+      replaceInstructions?: boolean;
+    },
+  ) {
+    if (!this.session) return { cancelled: true };
+    return await this.session.navigateTree(targetId, options);
   }
 
   setThinkingLevel(level: string) {
@@ -210,6 +214,9 @@ export class PiSession {
       contextPercent: ctx?.percent,
       contextWindow: ctx?.contextWindow,
       availableModels: this.getAvailableModels(),
+      tree: this.session?.sessionManager.getTree() ?? null,
+      leafId: this.session?.sessionManager.getLeafId() ?? null,
+      leafEntry: this.session?.sessionManager.getLeafEntry() ?? null
     };
   }
 

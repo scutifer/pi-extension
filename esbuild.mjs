@@ -6,12 +6,21 @@ const watch = process.argv.includes("--watch");
 const extensionConfig = {
   entryPoints: ["src/extension.ts"],
   bundle: true,
-  outfile: "dist/extension.js",
+  outfile: "dist/extension.cjs",
   format: "cjs",
   platform: "node",
   target: "node18",
-  external: ["vscode", "@mariozechner/*"],
+  external: ["vscode", "@mariozechner/clipboard-*"],
   sourcemap: true,
+  banner: {
+    js: `
+      const __import_meta_url = require('url').pathToFileURL(__filename).href;
+      const __import_meta = { url: __import_meta_url };
+    `,
+  },
+  define: {
+    "import.meta": "__import_meta",
+  },
 };
 
 /** @type {import('esbuild').BuildOptions} */

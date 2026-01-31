@@ -172,6 +172,12 @@ export class PiPanel {
         await this.session.setModel(msg.provider, msg.modelId);
         this.postMessage({ type: "state", state: this.session.getState() });
         break;
+      case "navigateTree": {
+        const result = await this.session.navigateTree(msg.targetId, msg.options);
+        this.postMessage({ type: "navigate_result", ...result });
+        this.postMessage({ type: "state", state: this.session.getState() });
+        break;
+      }
     }
   }
 
