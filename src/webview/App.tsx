@@ -345,6 +345,33 @@ function flattenSessionTree(
     const role = entry.type === "message" ? entry.message?.role : undefined;
     const label = node.label ?? (entry.type === "label" ? entry.label : undefined);
 
+    // For toolResult messages, extract tool name and args from parent assistant
+    let toolName: string | undefined;
+    let toolArgs: any;
+    if (role === "toolResult" && entry.message) {
+      const tcId = entry.message.toolCallId;
+      // Walk back through flatAll to find the preceding assistant with matching toolCall
+      if (tcId) {
+        for (let i = flatAll.length - 1; i >= 0; i--) {
+          const prev = flatAll[i];
+          if (prev.role === "assistant") {
+            // Find matching node in allNodes to get entry
+            const prevEntry = allNodes.find((n) => n.entry.id === prev.id)?.entry as any;
+            if (prevEntry?.message?.content && Array.isArray(prevEntry.message.content)) {
+              const tc = prevEntry.message.content.find(
+                (b: any) => (b.type === "toolCall") && (b.id === tcId || b.toolCallId === tcId)
+              );
+              if (tc) {
+                toolName = tc.name ?? tc.toolName;
+                toolArgs = tc.arguments ?? tc.args;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
     const flatNode: FlatTreeNode = {
       id,
       parentId,
@@ -360,6 +387,8 @@ function flattenSessionTree(
       isLast,
       gutters,
       isVirtualRootChild,
+      toolName,
+      toolArgs,
     };
 
     flatAll.push(flatNode);

@@ -1229,8 +1229,19 @@ body {
   background: var(--bg-hover);
 }
 
-/* ── Tree List ── */
+.tree-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  grid-column: 1 / -1;
+}
+
+/* ── Tree List Grid ── */
 .tree-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
   flex: 1;
   overflow-y: auto;
   padding: 4px 0;
@@ -1245,48 +1256,68 @@ body {
   border-radius: 3px;
 }
 
-.tree-empty {
-  padding: 24px 16px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
 /* ── Tree Node ── */
 .tree-node {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 0px 12px;
-  margin: -3px 0;
+  display: contents;
   cursor: pointer;
   font-size: 13px;
   line-height: 1.5;
-  transition: background 0.08s;
   white-space: nowrap;
-  overflow: hidden;
 }
 
-.tree-node:hover,
-.tree-node-selected {
+.tree-node > * {
+  padding: 1px 0;
+  transition: background 0.08s;
+}
+
+.tree-node:hover > *,
+.tree-node-selected > * {
   background: var(--bg-hover);
 }
 
-.tree-node-selected {
+.tree-node-selected > * {
   background: var(--bg-elevated);
 }
 
-.tree-node-inactive > *:not(.tree-node-trunk) {
+.tree-node-inactive > * {
   opacity: 0.45;
 }
 
-.tree-node-inactive:hover > *:not(.tree-node-trunk),
-.tree-node-inactive.tree-node-selected > *:not(.tree-node-trunk) {
+.tree-node-inactive > * .tree-node-trunk {
+  opacity: 1;
+}
+
+.tree-node-inactive:hover > *,
+.tree-node-inactive.tree-node-selected > * {
   opacity: 0.7;
 }
 
-.tree-node-leaf {
-  /* subtle highlight for the active leaf */
+.tree-node-tool > * {
+  opacity: 0.45;
+}
+
+.tree-node-tool:hover > *,
+.tree-node-tool.tree-node-selected > * {
+  opacity: 0.75;
+}
+
+.tree-node-col1 {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding-left: 12px;
+  padding-right: 8px;
+  justify-content: flex-end;
+  white-space: pre;
+}
+
+.tree-node-col2 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-right: 12px;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .tree-node-trunk {
@@ -1302,44 +1333,23 @@ body {
   color: var(--accent);
   font-size: 10px;
   flex-shrink: 0;
-  margin-right: 2px;
-}
-
-.tree-node-icon {
-  flex-shrink: 0;
-  font-size: 12px;
-  width: 14px;
-  text-align: center;
-  color: var(--text-tertiary);
-}
-
-.tree-node-icon-user {
-  color: var(--accent);
-}
-
-.tree-node-icon-assistant {
-  color: var(--green);
-}
-
-.tree-node-icon-toolResult {
-  color: var(--yellow);
 }
 
 .tree-node-role {
   font-size: 11px;
   font-weight: 600;
-  /* text-transform: uppercase; */
   letter-spacing: 0.04em;
   color: var(--text-muted);
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .tree-node-role-user {
-  color: var(--green);
+  color: rgba(92, 207, 127, 0.6);
 }
 
 .tree-node-role-assistant {
-  color: var(--blue);
+  color: rgba(124, 138, 255, 0.55);
 }
 
 .tree-node-role-compaction {

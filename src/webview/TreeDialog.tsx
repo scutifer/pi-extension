@@ -15,26 +15,65 @@ interface TreeDialogProps {
   onClose: () => void;
 }
 
-function roleIcon(node: FlatTreeNode): string {
-  if (node.entryType === "compaction") return "⊘";
-  if (node.entryType === "branch_summary") return "⑂";
-  if (node.entryType === "model_change" || node.entryType === "thinking_level_change") return "⚙";
-  if (node.entryType === "label") return "🏷";
-  if (node.entryType === "custom" || node.entryType === "custom_message") return "◆";
-  if (node.role === "user") return "›";
-  if (node.role === "assistant") return "‹";
-  if (node.role === "toolResult") return "⚡";
-  return "·";
-}
+const PAGE_SIZE = 15;
 
 function roleLabel(node: FlatTreeNode): string {
   if (node.entryType === "message") {
     if (node.role === "user") return "user";
     if (node.role === "assistant") return "assistant";
-    if (node.role === "toolResult") return "tool";
+    if (node.role === "toolResult") return node.toolName ?? "tool";
     return node.role ?? "";
   }
   return node.entryType.replace(/_/g, " ");
+}
+
+function toolPreview(node: FlatTreeNode): string {
+  const name = node.toolName;
+  const args = node.toolArgs;
+  if (!name) return node.preview;
+
+  switch (name) {
+    case "bash":
+      return args?.command ? truncStr(args.command, 120) : node.preview;
+    case "read":
+      return shortenPath(args?.path) + (args?.offset != null || args?.limit != null
+        ? ` ${args.offset ?? 1}:${(args.offset ?? 1) + (args.limit ?? 0)}`
+        : "");
+    case "write":
+      return shortenPath(args?.path);
+    case "edit":
+      return shortenPath(args?.path);
+    case "grep":
+      return (args?.pattern ?? "") + (args?.path ? " in " + shortenPath(args.path) : "");
+    case "find":
+      return (args?.pattern ?? "") + (args?.path ? " in " + shortenPath(args.path) : "");
+    case "ls":
+      return shortenPath(args?.path);
+    default: {
+      // Generic: show first string arg value
+      if (!args) return node.preview;
+      const vals = Object.values(args).filter((v) => typeof v === "string") as string[];
+      return vals.length > 0 ? truncStr(vals.slice(0, 2).join(" "), 120) : node.preview;
+    }
+  }
+}
+
+function nodePreview(node: FlatTreeNode): string {
+  if (node.role === "toolResult") return toolPreview(node);
+  return node.preview;
+}
+
+function shortenPath(p: string | undefined): string {
+  if (!p) return "";
+  const parts = p.split("/");
+  if (parts.length <= 3) return p;
+  return "…/" + parts.slice(-2).join("/");
+}
+
+function truncStr(s: string, max: number): string {
+  const c = s.replace(/\s+/g, " ").trim();
+  if (c.length <= max) return c;
+  return c.slice(0, max - 1) + "…";
 }
 
 function matchesSearch(node: FlatTreeNode, query: string): boolean {
@@ -43,7 +82,8 @@ function matchesSearch(node: FlatTreeNode, query: string): boolean {
   return (
     node.preview.toLowerCase().includes(q) ||
     roleLabel(node).includes(q) ||
-    (node.label?.toLowerCase().includes(q) ?? false)
+    (node.label?.toLowerCase().includes(q) ?? false) ||
+    (node.toolName?.toLowerCase().includes(q) ?? false)
   );
 }
 
@@ -88,13 +128,13 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
 
   useEffect(() => {
     if (selectedIdx < 0) return;
-    const el = listRef.current?.children[selectedIdx] as HTMLElement | undefined;
+    const el = listRef.current?.querySelector(`[data-tree-idx="${selectedIdx}"]`) as HTMLElement | undefined;
     el?.scrollIntoView({ block: "nearest" });
   }, [selectedIdx]);
 
   const handleSelect = useCallback(
     (node: FlatTreeNode) => {
-      if (node.isLeaf) return; // already here
+      if (node.isLeaf) return;
       setActionNode(node);
       setShowCustomInput(false);
       setCustomInstructions("");
@@ -104,12 +144,18 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "ArrowDown") {
+      if (e.key === "ArrowDown" && !e.altKey) {
         e.preventDefault();
         setSelectedIdx((i) => Math.min(i + 1, filtered.length - 1));
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === "ArrowUp" && !e.altKey) {
         e.preventDefault();
         setSelectedIdx((i) => Math.max(i - 1, 0));
+      } else if (e.key === "ArrowDown" && e.altKey) {
+        e.preventDefault();
+        setSelectedIdx((i) => Math.min(i + PAGE_SIZE, filtered.length - 1));
+      } else if (e.key === "ArrowUp" && e.altKey) {
+        e.preventDefault();
+        setSelectedIdx((i) => Math.max(i - PAGE_SIZE, 0));
       } else if (e.key === "Enter" && selectedIdx >= 0) {
         e.preventDefault();
         handleSelect(filtered[selectedIdx]);
@@ -160,6 +206,7 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
             <TreeNodeRow
               key={node.id}
               node={node}
+              idx={idx}
               multipleRoots={multipleRoots}
               isSelected={idx === selectedIdx}
               onClick={() => handleSelect(node)}
@@ -239,7 +286,7 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
 
         <div className="tree-footer">
           <span className="tree-footer-hint">
-            ↑↓ navigate · Enter select · Esc close
+            ↑↓ navigate · ⌥↑↓ page · Enter select · Esc close
           </span>
         </div>
       </div>
@@ -249,12 +296,14 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
 
 function TreeNodeRow({
   node,
+  idx,
   multipleRoots,
   isSelected,
   onClick,
   onMouseEnter,
 }: {
   node: FlatTreeNode;
+  idx: number;
   multipleRoots: boolean;
   isSelected: boolean;
   onClick: () => void;
@@ -262,27 +311,37 @@ function TreeNodeRow({
 }) {
   const prefix = buildTreePrefix(node, multipleRoots);
   const label = roleLabel(node);
+  const preview = nodePreview(node);
+  const isTool = node.role === "toolResult";
 
   return (
     <div
+      data-tree-idx={idx}
       className={[
         "tree-node",
         node.isOnActiveBranch ? "" : "tree-node-inactive",
         isSelected ? "tree-node-selected" : "",
         node.isLeaf ? "tree-node-leaf" : "",
+        isTool ? "tree-node-tool" : "",
       ]
         .filter(Boolean)
         .join(" ")}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
     >
-      {prefix && <span className="tree-node-trunk">{prefix}</span>}
-      {node.isOnActiveBranch && <span className="tree-node-active-marker">•</span>}
-      {node.label
-        ? <span className="tree-node-label">[{node.label}]</span>
-        : <span className={`tree-node-role tree-node-role-${label}`}>{label}</span>}
-      <span className="tree-node-preview-text">{node.preview}</span>
-      {node.isLeaf && <span className="tree-node-active-badge">🍃</span>}
+      {/* Column 1: trunk + marker + role */}
+      <span className="tree-node-col1">
+        {prefix && <span className="tree-node-trunk">{prefix}</span>}
+        {node.isOnActiveBranch && <span className="tree-node-active-marker">•</span>}
+        {node.label
+          ? <span className="tree-node-label">[{node.label}]</span>
+          : <span className={`tree-node-role tree-node-role-${label}`}>{label}</span>}
+      </span>
+      {/* Column 2: preview text */}
+      <span className="tree-node-col2">
+        <span className="tree-node-preview-text">{preview}</span>
+        {node.isLeaf && <span className="tree-node-active-badge">🍃</span>}
+      </span>
     </div>
   );
 }

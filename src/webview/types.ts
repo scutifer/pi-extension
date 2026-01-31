@@ -135,6 +135,10 @@ export interface FlatTreeNode {
   label?: string;
   /** ISO timestamp */
   timestamp: string;
+  /** For toolResult nodes: tool name from the matching tool call */
+  toolName?: string;
+  /** For toolResult nodes: tool args from the matching tool call */
+  toolArgs?: any;
   /** Indentation level (each level = 3 chars) */
   indent: number;
   /** Whether to show connector (├─ or └─) */
