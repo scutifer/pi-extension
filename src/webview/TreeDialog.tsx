@@ -329,19 +329,12 @@ function TreeNodeRow({
       onClick={onClick}
       onMouseEnter={onMouseEnter}
     >
-      {/* Column 1: trunk + marker + role */}
-      <span className="tree-node-col1">
-        {prefix && <span className="tree-node-trunk">{prefix}</span>}
-        {node.isOnActiveBranch && <span className="tree-node-active-marker">•</span>}
-        {node.label
-          ? <span className="tree-node-label">[{node.label}]</span>
-          : <span className={`tree-node-role tree-node-role-${label}`}>{label}</span>}
-      </span>
-      {/* Column 2: preview text */}
-      <span className="tree-node-col2">
-        <span className="tree-node-preview-text">{preview}</span>
-        {node.isLeaf && <span className="tree-node-active-badge">🍃</span>}
-      </span>
+      {prefix && <span className="tree-node-trunk">{prefix}</span>}
+      {node.label
+        ? <span className="tree-node-label">[{node.label}]</span>
+        : <span className={`tree-node-role tree-node-role-${label}`}>{label}</span>}
+      <span className="tree-node-preview-text">{preview}</span>
+      {node.isLeaf && <span className="tree-node-active-badge">🍃</span>}
     </div>
   );
 }

@@ -452,7 +452,12 @@ function flattenSessionTree(
     node.isOnActiveBranch = activeIds.has(node.id);
   }
 
-  const filtered = flatAll.filter((node) => !EXCLUDED_ENTRY_TYPES.has(node.entryType));
+  const filtered = flatAll.filter((node) => {
+    if (EXCLUDED_ENTRY_TYPES.has(node.entryType)) return false;
+    // Hide assistant messages that are purely tool calls (no text content)
+    if (node.role === "assistant" && node.preview.startsWith("Tool call:")) return false;
+    return true;
+  });
   if (filtered.length === 0) return [];
 
   recalculateVisualStructure(filtered, flatAll);
