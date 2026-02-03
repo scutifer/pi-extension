@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
 import { PiSession } from "./session";
 import { log } from "./extension";
 
@@ -176,6 +178,24 @@ export class PiPanel {
         const result = await this.session.navigateTree(msg.targetId, msg.options);
         this.postMessage({ type: "navigate_result", ...result });
         this.postMessage({ type: "state", state: this.session.getState() });
+        break;
+      }
+      case "listFiles": {
+        const cwd = this.session.getState().cwd || process.cwd();
+        const target = msg.path ? path.resolve(cwd, msg.path) : cwd;
+        try {
+          const dirents = fs.readdirSync(target, { withFileTypes: true });
+          const entries = dirents
+            .filter((d) => !d.name.startsWith("."))
+            .map((d) => ({ name: d.name, isDirectory: d.isDirectory() }))
+            .sort((a, b) => {
+              if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+              return a.name.localeCompare(b.name);
+            });
+          this.postMessage({ type: "file_list", path: msg.path, entries });
+        } catch {
+          this.postMessage({ type: "file_list", path: msg.path, entries: [] });
+        }
         break;
       }
     }

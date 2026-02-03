@@ -16,7 +16,8 @@ export type WebviewToExtension =
         customInstructions?: string;
         replaceInstructions?: boolean;
       };
-    };
+    }
+  | { type: "listFiles"; path: string };
 
 // Messages from extension host → webview
 export type ExtensionToWebview =
@@ -28,7 +29,13 @@ export type ExtensionToWebview =
       editorText?: string;
       cancelled: boolean;
       aborted?: boolean;
-    };
+    }
+  | { type: "file_list"; path: string; entries: FileEntry[] };
+
+export interface FileEntry {
+  name: string;
+  isDirectory: boolean;
+}
 
 export interface HistoryMessage {
   role: "user" | "assistant" | "system";
@@ -58,9 +65,19 @@ export interface SessionState {
     input: number;
     output: number;
     cacheRead: number;
+    cacheWrite: number;
     total: number;
   };
   cost?: number;
+  sessionFile?: string;
+  sessionId?: string;
+  messageCounts?: {
+    user: number;
+    assistant: number;
+    toolCalls: number;
+    toolResults: number;
+    total: number;
+  };
   contextPercent?: number;
   contextWindow?: number;
   availableModels?: Array<{ provider: string; id: string; name: string }>;

@@ -2,7 +2,11 @@
   "name": "pi-extension",
   "displayName": "Pi Coding Agent",
   "description": "VSCode extension for the Pi coding agent",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phaseshiftai/pi-extension.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -23,7 +27,8 @@
   },
   "scripts": {
     "build": "node esbuild.mjs",
-    "watch": "node esbuild.mjs --watch"
+    "watch": "node esbuild.mjs --watch",
+    "package": "npx @vscode/vsce package"
   },
   "devDependencies": {
     "@types/node": "^25.1.0",

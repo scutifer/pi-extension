@@ -105,7 +105,7 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
   );
 
   return (
-    <div className="tree-overlay" onKeyDown={handleKeyDown}>
+    <div className="tree-overlay" onKeyDown={handleKeyDown} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="tree-dialog">
         <div className="tree-header">
           <div className="tree-search-row">
@@ -134,6 +134,7 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
               idx={idx}
               multipleRoots={multipleRoots}
               isSelected={idx === selectedIdx}
+              isAction={actionNode?.id === node.id}
               onClick={() => handleSelect(node)}
               onMouseEnter={() => setSelectedIdx(idx)}
             />
@@ -142,7 +143,7 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
 
         {actionNode && (
           <div className="tree-actions">
-            <div className="tree-actions-title">Branch from selected node</div>
+            <div className="tree-actions-title">Branch from <span style={{ color: 'var(--accent)' }}>selected node</span></div>
             <div className="tree-actions-row">
               <button className="tree-action-btn" onClick={() => onNavigate(actionNode.id, { summarize: false })}>Branch</button>
               <button className="tree-action-btn" onClick={() => onNavigate(actionNode.id, { summarize: true })}>Branch + summary</button>
@@ -184,10 +185,10 @@ export function TreeDialog({ nodes, leafId, onNavigate, onClose }: TreeDialogPro
 // ── Row rendering (mirrors CLI's getEntryDisplayText) ──
 
 function TreeNodeRow({
-  node, idx, multipleRoots, isSelected, onClick, onMouseEnter,
+  node, idx, multipleRoots, isSelected, isAction, onClick, onMouseEnter,
 }: {
   node: FlatTreeNode; idx: number; multipleRoots: boolean;
-  isSelected: boolean; onClick: () => void; onMouseEnter: () => void;
+  isSelected: boolean; isAction: boolean; onClick: () => void; onMouseEnter: () => void;
 }) {
   const prefix = buildTreePrefix(node, multipleRoots);
   const isOnActive = node.isOnActiveBranch;
@@ -195,12 +196,12 @@ function TreeNodeRow({
   return (
     <div
       data-tree-idx={idx}
-      className={`tree-row ${isSelected ? "tree-row-selected" : ""} ${!isOnActive ? "tree-row-inactive" : ""}`}
+      className={`tree-row ${isSelected ? "tree-row-selected" : ""} ${isAction ? "tree-row-action" : ""} ${!isOnActive ? "tree-row-inactive" : ""}`}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
     >
       {prefix && <span className="tree-trunk">{prefix}</span>}
-      {isOnActive && <span className="tree-marker">• </span>}
+{}
       {node.label && <span className="tree-label">[{node.label}] </span>}
       <EntryContent node={node} />
       {node.isLeaf && <span className="tree-leaf"> 🍃</span>}

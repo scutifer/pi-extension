@@ -96,6 +96,15 @@ export class PiSession {
   }
 
   async loadSessionFile(sessionPath: string): Promise<{ name: string }> {
+    // ── Safety: back up the session file before touching anything ──
+    const backupPath = sessionPath + ".bak";
+    try {
+      fs.copyFileSync(sessionPath, backupPath);
+    } catch {
+      // If we can't back up, refuse to proceed
+      throw new Error(`Cannot create backup of session file: ${sessionPath}`);
+    }
+
     // Parse the session file to extract cwd and name
     const { cwd: sessionCwd, name } = parseSessionFile(sessionPath);
 
@@ -107,6 +116,23 @@ export class PiSession {
     if (!this.session) throw new Error("Session not initialized");
     const ok = await this.session.switchSession(sessionPath);
     if (!ok) throw new Error("switchSession returned false (cancelled by extension)");
+
+    // Verify the file wasn't corrupted — it should be larger than the backup
+    try {
+      const origSize = fs.statSync(backupPath).size;
+      const newSize = fs.statSync(sessionPath).size;
+      if (newSize < origSize) {
+        // Restore from backup
+        fs.copyFileSync(backupPath, sessionPath);
+        throw new Error(
+          `Session file shrank during resume (${origSize} → ${newSize} bytes). ` +
+          `Restored from backup. The session may not have loaded correctly.`
+        );
+      }
+    } catch (e: any) {
+      if (e.message?.includes("shrank")) throw e;
+      // stat failed — don't crash, just warn
+    }
 
     this.sessionName = name;
     return { name };
@@ -208,9 +234,19 @@ export class PiSession {
         input: stats.tokens.input,
         output: stats.tokens.output,
         cacheRead: stats.tokens.cacheRead,
+        cacheWrite: stats.tokens.cacheWrite,
         total: stats.tokens.total,
       } : undefined,
       cost: stats?.cost,
+      sessionFile: stats?.sessionFile ?? undefined,
+      sessionId: stats?.sessionId ?? undefined,
+      messageCounts: stats ? {
+        user: stats.userMessages,
+        assistant: stats.assistantMessages,
+        toolCalls: stats.toolCalls,
+        toolResults: stats.toolResults,
+        total: stats.totalMessages,
+      } : undefined,
       contextPercent: ctx?.percent,
       contextWindow: ctx?.contextWindow,
       availableModels: this.getAvailableModels(),

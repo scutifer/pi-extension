@@ -3,6 +3,8 @@ import { Message } from "./Message";
 import { StatusBar } from "./StatusBar";
 import { SettingsDialog, type ViewSettings } from "./Settings";
 import { TreeDialog } from "./TreeDialog";
+import { InfoDialog } from "./InfoDialog";
+import { FilePicker } from "./FilePicker";
 import { TableOfContents, extractTocEntries, type TocEntry } from "./TableOfContents";
 import styles from "./styles.css";
 import type {
@@ -11,6 +13,7 @@ import type {
   HistoryMessage,
   FlatTreeNode,
   SessionState,
+  FileEntry,
 } from "./types";
 
 const vscode = acquireVsCodeApi();
@@ -686,7 +689,15 @@ const defaultViewSettings: ViewSettings = {
 export function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [settings, setSettings] = useState<{ open: Boolean, data: ViewSettings }>({ open: false, data: defaultViewSettings });
+  const [infoOpen, setInfoOpen] = useState(false);
   const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
+  const [filePicker, setFilePicker] = useState<{
+    active: boolean;
+    atPos: number; // cursor position of the '@'
+    currentPath: string;
+    filter: string;
+    entries: FileEntry[];
+  }>({ active: false, atPos: 0, currentPath: "", filter: "", entries: [] });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
@@ -709,6 +720,12 @@ export function App() {
         dispatch({ type: "state", state: msg.state });
       } else if (msg.type === "history") {
         dispatch({ type: "history", messages: msg.messages });
+      } else if (msg.type === "file_list") {
+        setFilePicker((prev) => ({
+          ...prev,
+          currentPath: msg.path,
+          entries: msg.entries,
+        }));
       } else if (msg.type === "navigate_result") {
         if (msg.editorText !== undefined && inputRef.current) {
           inputRef.current.value = msg.editorText;
@@ -745,21 +762,57 @@ export function App() {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (filePicker.active) {
+        // Let FilePicker's global keydown handler deal with navigation keys
+        if (["ArrowUp", "ArrowDown", "Enter", "Tab", "Escape"].includes(e.key)) {
+          return; // don't submit or do anything else
+        }
+      }
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSubmit();
       }
     },
-    [handleSubmit],
+    [handleSubmit, filePicker.active],
   );
 
   const handleAbort = useCallback(() => {
     vscode.postMessage({ type: "abort" });
   }, []);
 
-  const handleInput = useCallback(() => {
-    if (inputRef.current) autoResize(inputRef.current);
+  const openFilePicker = useCallback((atPos: number) => {
+    setFilePicker({ active: true, atPos, currentPath: "", filter: "", entries: [] });
+    vscode.postMessage({ type: "listFiles", path: "" });
   }, []);
+
+  const closeFilePicker = useCallback(() => {
+    setFilePicker((prev) => ({ ...prev, active: false }));
+  }, []);
+
+  const handleInput = useCallback(() => {
+    if (!inputRef.current) return;
+    autoResize(inputRef.current);
+
+    const el = inputRef.current;
+    const val = el.value;
+    const cursor = el.selectionStart ?? val.length;
+
+    if (filePicker.active) {
+      // Update filter: text between atPos+1 and cursor, after the last '/'
+      const typed = val.slice(filePicker.atPos + 1, cursor);
+      const lastSlash = typed.lastIndexOf("/");
+      const filter = lastSlash >= 0 ? typed.slice(lastSlash + 1) : typed;
+      setFilePicker((prev) => ({ ...prev, filter }));
+    } else {
+      // Check if user just typed '@'
+      if (cursor > 0 && val[cursor - 1] === "@") {
+        const charBefore = cursor > 1 ? val[cursor - 2] : " ";
+        if (charBefore === " " || charBefore === "\n" || cursor === 1) {
+          openFilePicker(cursor - 1);
+        }
+      }
+    }
+  }, [filePicker.active, filePicker.atPos, openFilePicker]);
 
   return (
     <div className="root-container">
@@ -785,43 +838,104 @@ export function App() {
         <div ref={messagesEndRef} />
       </div>
       <div className="input-container">
+        {filePicker.active && (
+          <FilePicker
+            entries={filePicker.entries}
+            currentPath={filePicker.currentPath}
+            filter={filePicker.filter}
+            onNavigate={(dir) => {
+              setFilePicker((prev) => ({ ...prev, currentPath: dir, filter: "", entries: [] }));
+              vscode.postMessage({ type: "listFiles", path: dir });
+              // Update textarea text to reflect navigation
+              if (inputRef.current) {
+                const before = inputRef.current.value.slice(0, filePicker.atPos + 1);
+                const afterCursor = inputRef.current.value.slice(inputRef.current.selectionStart ?? inputRef.current.value.length);
+                const newPath = dir ? dir + "/" : "";
+                inputRef.current.value = before + newPath + afterCursor;
+                const newCursor = filePicker.atPos + 1 + newPath.length;
+                inputRef.current.setSelectionRange(newCursor, newCursor);
+                inputRef.current.focus();
+              }
+            }}
+            onSelect={(filePath) => {
+              if (inputRef.current) {
+                const before = inputRef.current.value.slice(0, filePicker.atPos);
+                const afterCursor = inputRef.current.value.slice(inputRef.current.selectionStart ?? inputRef.current.value.length);
+                inputRef.current.value = before + filePath + " " + afterCursor;
+                const newCursor = filePicker.atPos + filePath.length + 1;
+                inputRef.current.setSelectionRange(newCursor, newCursor);
+                autoResize(inputRef.current);
+                inputRef.current.focus();
+              }
+              closeFilePicker();
+            }}
+            onClose={closeFilePicker}
+          />
+        )}
         <div className="input-box">
           <textarea
             ref={inputRef}
             className="input-textarea"
-            placeholder="Message pi…"
+            placeholder="Queue another message…"
             onKeyDown={handleKeyDown}
             onInput={handleInput}
             rows={1}
           />
-          <div className="input-actions">
-            {state.sessionState.isStreaming ? (
-              <button
-                className="btn btn-stop"
-                onClick={handleAbort}
-                title="Stop generation"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                  <rect x="2" y="2" width="10" height="10" rx="1" />
+          <div className="input-toolbar">
+            <div className="input-toolbar-left">
+              <button className="toolbar-chip" title="Placeholder action">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M13.5 7.5l-5-5-7 7 5 5 7-7z" /><path d="M6 4l6 6" />
+                </svg>
+                <span>Edit automatically</span>
+              </button>
+              <button className="toolbar-chip" title="Placeholder context">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 2l8 0 0 12-8 0z" /><path d="M6 6h4" /><path d="M6 9h2" />
+                </svg>
+                <span>Context</span>
+              </button>
+            </div>
+            <div className="input-toolbar-right">
+              <button className="toolbar-icon-btn" title="Attach file">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M13.2 7.8L7.5 13.5a3.18 3.18 0 01-4.5-4.5l6.4-6.4a2.12 2.12 0 013 3L6 12a1.06 1.06 0 01-1.5-1.5l5.7-5.7" />
                 </svg>
               </button>
-            ) : (
-              <button
-                className="btn btn-send"
-                onClick={handleSubmit}
-                title="Send message"
-              >
+              <button className="toolbar-icon-btn" title="Commands">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M3 14V2l11 6-11 6z" />
+                  <path d="M5 3L11 8L5 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                 </svg>
               </button>
-            )}
+              {state.sessionState.isStreaming ? (
+                <button
+                  className="btn btn-stop"
+                  onClick={handleAbort}
+                  title="Stop generation"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                    <rect x="2" y="2" width="10" height="10" rx="1" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  className="btn btn-send"
+                  onClick={handleSubmit}
+                  title="Send message"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 12V4" /><path d="M4 7l4-4 4 4" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
         </div>
         <StatusBar
           state={state.sessionState}
           onSettingsOpen={() => setSettings(d => ({ ...d, open: true }))}
           onTreeOpen={() => dispatch({ type: "tree_state", open: true })}
+          onInfoOpen={() => setInfoOpen(true)}
         />
       </div>
       {settings.open && (
@@ -838,6 +952,12 @@ export function App() {
             }
           }}
           onClose={() => setSettings(d => ({ ...d, open: false }))}
+        />
+      )}
+      {infoOpen && (
+        <InfoDialog
+          state={state.sessionState}
+          onClose={() => setInfoOpen(false)}
         />
       )}
       {state.tree.open && (

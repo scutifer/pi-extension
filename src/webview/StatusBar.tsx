@@ -20,10 +20,12 @@ export function StatusBar({
   state,
   onSettingsOpen,
   onTreeOpen,
+  onInfoOpen,
 }: {
   state: SessionState;
   onSettingsOpen: () => void;
   onTreeOpen: () => void;
+  onInfoOpen: () => void;
 }) {
   const hasTokens = state.tokens && state.tokens.total > 0;
   const hasCost = state.cost != null && state.cost > 0;
@@ -84,6 +86,20 @@ export function StatusBar({
         <span className="bar-sep">·</span>
         <span className="bar-item bar-thinking">{state.thinkingLevel}</span>
         {state.isStreaming && <span className="bar-streaming" />}
+        <button
+          className="bar-info-btn"
+          onClick={onInfoOpen}
+          title="Session info"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+          >
+            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1a6 6 0 1 1 0 12A6 6 0 0 1 8 2zm-.5 3h1v1h-1V5zm0 2h1v5h-1V7z" />
+          </svg>
+        </button>
         <button
           className="bar-tree-btn"
           onClick={onTreeOpen}
