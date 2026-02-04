@@ -14,6 +14,7 @@ import type {
   FlatTreeNode,
   SessionState,
   FileEntry,
+  SessionListItem,
 } from "./types";
 
 const vscode = acquireVsCodeApi();
@@ -652,6 +653,12 @@ function hasTextContent(content: unknown): boolean {
   return false;
 }
 
+function truncateLabel(text: string, maxLength = 40): string {
+  const compact = (text ?? "").replace(/\s+/g, " ").trim();
+  if (compact.length <= maxLength) return compact;
+  return `${compact.slice(0, maxLength - 1)}\u2026`;
+}
+
 function trimPreview(text: string, maxLength = 140): string {
   const compact = (text ?? "").replace(/\s+/g, " ").trim();
   if (compact.length <= maxLength) return compact;
@@ -691,6 +698,8 @@ export function App() {
   const [settings, setSettings] = useState<{ open: Boolean, data: ViewSettings }>({ open: false, data: defaultViewSettings });
   const [infoOpen, setInfoOpen] = useState(false);
   const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
+  const [sessions, setSessions] = useState<SessionListItem[]>([]);
+  const [sessionDropdownOpen, setSessionDropdownOpen] = useState(false);
   const [filePicker, setFilePicker] = useState<{
     active: boolean;
     atPos: number; // cursor position of the '@'
@@ -746,6 +755,10 @@ export function App() {
           currentPath: msg.path,
           entries: msg.entries,
         }));
+      } else if (msg.type === "session_list") {
+        setSessions(msg.sessions);
+      } else if (msg.type === "clear") {
+        dispatch({ type: "clear" });
       } else if (msg.type === "navigate_result") {
         if (msg.editorText !== undefined && inputRef.current) {
           inputRef.current.value = msg.editorText;
@@ -767,6 +780,19 @@ export function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView();
   }, [state.messages]);
+
+  // Close session dropdown on outside click
+  useEffect(() => {
+    if (!sessionDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".top-header")) {
+        setSessionDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [sessionDropdownOpen]);
 
   // Extract TOC entries from rendered headings
   useEffect(() => {
@@ -882,11 +908,67 @@ export function App() {
 
   return (
     <div className="root-container">
-      {state.sessionState.sessionName && (
-        <div className="top-header">
-          <span className="top-header-name">{state.sessionState.sessionName}</span>
+      <div className="top-header" data-open={sessionDropdownOpen ? "true" : "false"}>
+        <div className="top-header-controls">
+          <div
+            className="session-selector"
+            onClick={() => {
+              const willOpen = !sessionDropdownOpen;
+              setSessionDropdownOpen(willOpen);
+              if (willOpen) {
+                vscode.postMessage({ type: "listSessions" });
+              }
+            }}
+          >
+            <span className="session-selector-name">
+              {state.sessionState.sessionName
+                || (state.messages.length > 0
+                  ? truncateLabel(state.messages.find(m => m.role === "user")?.text || "Chat")
+                  : "New Chat")}
+            </span>
+            <span className="session-selector-caret">
+              {sessionDropdownOpen ? (
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                  <path d="M5 3L9 7H1L5 3Z" />
+                </svg>
+              ) : (
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                  <path d="M5 7L1 3H9L5 7Z" />
+                </svg>
+              )}
+            </span>
+          </div>
+          <button
+            className="new-session-btn"
+            onClick={() => {
+              vscode.postMessage({ type: "newSession" });
+              setSessionDropdownOpen(false);
+            }}
+            title="New chat"
+          >+</button>
         </div>
-      )}
+        {sessionDropdownOpen && (
+          <div className="session-dropdown">
+            {sessions.length === 0 && (
+              <div className="session-dropdown-empty">No sessions</div>
+            )}
+            {sessions.map(s => (
+              <div
+                key={s.path}
+                className={`session-dropdown-item${s.path === state.sessionState.sessionFile ? " session-dropdown-item-active" : ""}`}
+                onClick={() => {
+                  if (s.path !== state.sessionState.sessionFile) {
+                    vscode.postMessage({ type: "switchSession", sessionPath: s.path });
+                  }
+                  setSessionDropdownOpen(false);
+                }}
+              >
+                {s.name || truncateLabel(s.firstMessage) || "Untitled"}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <TableOfContents
         entries={tocEntries}
         scrollContainer={messagesScrollRef.current}

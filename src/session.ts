@@ -279,6 +279,21 @@ export class PiSession {
     };
   }
 
+  async listSessions(): Promise<Array<{ path: string; name: string; firstMessage: string; modified: number }>> {
+    try {
+      const sessions = await pi.SessionManager.list(this.cwd);
+      return sessions.map(s => ({
+        path: s.path,
+        name: s.name || "",
+        firstMessage: s.firstMessage,
+        modified: s.modified.getTime(),
+      }));
+    } catch (err) {
+      log("ERROR", "listSessions failed:", err);
+      return [];
+    }
+  }
+
   dispose() {
     this.unsubscribe?.();
     this.session?.dispose();

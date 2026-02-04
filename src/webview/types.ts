@@ -19,7 +19,9 @@ export type WebviewToExtension =
         replaceInstructions?: boolean;
       };
     }
-  | { type: "listFiles"; path: string };
+  | { type: "listFiles"; path: string }
+  | { type: "listSessions" }
+  | { type: "switchSession"; sessionPath: string };
 
 // Messages from extension host → webview
 export type ExtensionToWebview =
@@ -32,11 +34,20 @@ export type ExtensionToWebview =
       cancelled: boolean;
       aborted?: boolean;
     }
-  | { type: "file_list"; path: string; entries: FileEntry[] };
+  | { type: "file_list"; path: string; entries: FileEntry[] }
+  | { type: "session_list"; sessions: SessionListItem[] }
+  | { type: "clear" };
 
 export interface FileEntry {
   name: string;
   isDirectory: boolean;
+}
+
+export interface SessionListItem {
+  path: string;
+  name: string;
+  firstMessage: string;
+  modified: number;
 }
 
 export interface HistoryMessage {

@@ -69,6 +69,8 @@ export class PiViewProvider implements vscode.WebviewViewProvider {
         break;
       case "newSession":
         await this.session.newSession();
+        this.postMessage({ type: "clear" });
+        this.postMessage({ type: "state", state: this.session.getState() });
         break;
       case "getState":
         // Initialize session on first getState if not already initialized
@@ -116,6 +118,24 @@ export class PiViewProvider implements vscode.WebviewViewProvider {
           this.postMessage({ type: "file_list", path: msg.path, entries });
         } catch {
           this.postMessage({ type: "file_list", path: msg.path, entries: [] });
+        }
+        break;
+      }
+      case "listSessions": {
+        const sessions = await this.session.listSessions();
+        this.postMessage({ type: "session_list", sessions });
+        break;
+      }
+      case "switchSession": {
+        try {
+          this.postMessage({ type: "clear" });
+          await this.session.loadSessionFile(msg.sessionPath);
+          const history = this.session.getHistory();
+          this.postMessage({ type: "history", messages: history });
+          this.postMessage({ type: "state", state: this.session.getState() });
+        } catch (err: any) {
+          log("ERROR", "switchSession failed:", err?.message ?? err, err?.stack);
+          vscode.window.showErrorMessage(`Failed to switch session: ${err?.message ?? err}`);
         }
         break;
       }

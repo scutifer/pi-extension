@@ -114,37 +114,103 @@ body {
   height: 100%;
 }
 
-/* ── Top Header ── */
+/* ── Top Header / Session Bar ── */
 .top-header {
-  position: fixed;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px;
+  flex-shrink: 0;
+  margin-top: 0.5em;
   z-index: 50;
-  display: inline-flex;
+}
+
+.top-header-controls {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  border-radius: var(--radius-md);
-  background: rgba(var(--bg-secondary-rgb, 128, 128, 128), 0.85);
-  backdrop-filter: blur(8px);
-  background: color-mix(in srgb, var(--bg-secondary) 85%, transparent);
-  opacity: 0.75;
-  transition: opacity 0.12s;
+  flex-shrink: 0;
 }
 
-.top-header:hover {
-  opacity: 1;
+.top-header[data-open="true"] {
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm, 3px);
 }
 
-.top-header-name {
+.session-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.session-selector:hover {
+  background: var(--bg-tertiary, rgba(128, 128, 128, 0.15));
+}
+
+.session-selector-name {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
-  letter-spacing: 0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.new-session-btn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: var(--radius-sm, 3px);
+  line-height: 1;
+}
+
+.new-session-btn:hover {
+  background: var(--bg-tertiary, rgba(128, 128, 128, 0.15));
+  color: var(--text-primary);
+}
+
+.session-dropdown {
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.session-dropdown-item {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-dropdown-item:hover {
+  background: var(--bg-tertiary, rgba(128, 128, 128, 0.15));
+  color: var(--text-primary);
+}
+
+.session-dropdown-item-active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.session-dropdown-empty {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  opacity: 0.6;
 }
 
 .messages-scroll {
