@@ -58,6 +58,12 @@ export class PiViewProvider implements vscode.WebviewViewProvider {
       case "prompt":
         await this.session.prompt(msg.text);
         break;
+      case "steer":
+        await this.session.steer(msg.text);
+        break;
+      case "followUp":
+        await this.session.followUp(msg.text);
+        break;
       case "abort":
         await this.session.abort();
         break;

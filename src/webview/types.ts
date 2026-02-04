@@ -3,6 +3,8 @@ import type { SessionEntry, SessionManager } from "@mariozechner/pi-coding-agent
 // Messages from webview → extension host
 export type WebviewToExtension =
   | { type: "prompt"; text: string }
+  | { type: "steer"; text: string }
+  | { type: "followUp"; text: string }
   | { type: "abort" }
   | { type: "newSession" }
   | { type: "getState" }

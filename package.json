@@ -30,10 +30,7 @@
         {
           "id": "pi-chat",
           "title": "Pi",
-          "icon": {
-            "light": "assets/activitybar-light.png",
-            "dark": "assets/activitybar-dark.png"
-          }
+          "icon": "assets/activitybar.svg"
         }
       ]
     },

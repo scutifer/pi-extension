@@ -69,7 +69,7 @@ export function FilePicker({
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex((i) => Math.max(i - 1, 0));
-      } else if (e.key === "Enter" || e.key === "Tab") {
+      } else if (e.key === "Tab") {
         e.preventDefault();
         if (filtered[selectedIndex]) {
           confirm(filtered[selectedIndex]);

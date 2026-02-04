@@ -35,7 +35,7 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export function Message({ message, viewSettings }: { message: ChatMessage; viewSettings: ViewSettings }) {
+export const Message = React.memo(function Message({ message, viewSettings }: { message: ChatMessage; viewSettings: ViewSettings }) {
   if (message.role === "system") {
     return (
       <div className="msg msg-system">
@@ -87,4 +87,4 @@ export function Message({ message, viewSettings }: { message: ChatMessage; viewS
       {!message.done && <span className="cursor-blink" />}
     </div>
   );
-}
+});

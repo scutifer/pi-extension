@@ -712,14 +712,34 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    let rafId: number | null = null;
+    const pendingActions: Action[] = [];
+
+    const flushActions = () => {
+      rafId = null;
+      if (pendingActions.length > 0) {
+        const actions = pendingActions.splice(0, pendingActions.length);
+        for (const action of actions) {
+          dispatch(action);
+        }
+      }
+    };
+
+    const scheduleDispatch = (action: Action) => {
+      pendingActions.push(action);
+      if (rafId === null) {
+        rafId = requestAnimationFrame(flushActions);
+      }
+    };
+
     const handler = (e: MessageEvent<ExtensionToWebview>) => {
       const msg = e.data;
       if (msg.type === "event") {
-        dispatch({ type: "event", event: msg.event });
+        scheduleDispatch({ type: "event", event: msg.event });
       } else if (msg.type === "state") {
-        dispatch({ type: "state", state: msg.state });
+        scheduleDispatch({ type: "state", state: msg.state });
       } else if (msg.type === "history") {
-        dispatch({ type: "history", messages: msg.messages });
+        scheduleDispatch({ type: "history", messages: msg.messages });
       } else if (msg.type === "file_list") {
         setFilePicker((prev) => ({
           ...prev,
@@ -736,7 +756,12 @@ export function App() {
     };
     window.addEventListener("message", handler);
     vscode.postMessage({ type: "getState" });
-    return () => window.removeEventListener("message", handler);
+    return () => {
+      window.removeEventListener("message", handler);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -752,6 +777,15 @@ export function App() {
     return () => clearTimeout(timer);
   }, [state.messages]);
 
+  const openFilePicker = useCallback((atPos: number) => {
+    setFilePicker({ active: true, atPos, currentPath: "", filter: "", entries: [] });
+    vscode.postMessage({ type: "listFiles", path: "" });
+  }, []);
+
+  const closeFilePicker = useCallback(() => {
+    setFilePicker((prev) => ({ ...prev, active: false }));
+  }, []);
+
   const handleSubmit = useCallback(() => {
     const text = inputRef.current?.value.trim();
     if (!text) return;
@@ -760,33 +794,60 @@ export function App() {
     autoResize(inputRef.current!);
   }, []);
 
+  const handleSteer = useCallback(() => {
+    const text = inputRef.current?.value.trim();
+    if (!text) return;
+    vscode.postMessage({ type: "steer", text });
+    if (inputRef.current) inputRef.current.value = "";
+    autoResize(inputRef.current!);
+  }, []);
+
+  const handleFollowUp = useCallback(() => {
+    const text = inputRef.current?.value.trim();
+    if (!text) return;
+    vscode.postMessage({ type: "followUp", text });
+    if (inputRef.current) inputRef.current.value = "";
+    autoResize(inputRef.current!);
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (filePicker.active) {
+        if (e.key === "Enter") {
+          // Dismiss popup, add a space, don't submit
+          e.preventDefault();
+          if (inputRef.current) {
+            const pos = inputRef.current.selectionStart ?? inputRef.current.value.length;
+            const val = inputRef.current.value;
+            inputRef.current.value = val.slice(0, pos) + " " + val.slice(pos);
+            inputRef.current.setSelectionRange(pos + 1, pos + 1);
+          }
+          closeFilePicker();
+          return;
+        }
         // Let FilePicker's global keydown handler deal with navigation keys
-        if (["ArrowUp", "ArrowDown", "Enter", "Tab", "Escape"].includes(e.key)) {
-          return; // don't submit or do anything else
+        if (["ArrowUp", "ArrowDown", "Tab", "Escape"].includes(e.key)) {
+          return;
         }
       }
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        handleSubmit();
+        if (state.sessionState.isStreaming) {
+          if (e.altKey) {
+            handleFollowUp();
+          } else {
+            handleSteer();
+          }
+        } else {
+          handleSubmit();
+        }
       }
     },
-    [handleSubmit, filePicker.active],
+    [handleSubmit, handleSteer, handleFollowUp, filePicker.active, closeFilePicker, state.sessionState.isStreaming],
   );
 
   const handleAbort = useCallback(() => {
     vscode.postMessage({ type: "abort" });
-  }, []);
-
-  const openFilePicker = useCallback((atPos: number) => {
-    setFilePicker({ active: true, atPos, currentPath: "", filter: "", entries: [] });
-    vscode.postMessage({ type: "listFiles", path: "" });
-  }, []);
-
-  const closeFilePicker = useCallback(() => {
-    setFilePicker((prev) => ({ ...prev, active: false }));
   }, []);
 
   const handleInput = useCallback(() => {
@@ -798,8 +859,13 @@ export function App() {
     const cursor = el.selectionStart ?? val.length;
 
     if (filePicker.active) {
-      // Update filter: text between atPos+1 and cursor, after the last '/'
+      // Check if user typed a space — dismiss the popup
       const typed = val.slice(filePicker.atPos + 1, cursor);
+      if (typed.endsWith(" ")) {
+        closeFilePicker();
+        return;
+      }
+      // Update filter: text between atPos+1 and cursor, after the last '/'
       const lastSlash = typed.lastIndexOf("/");
       const filter = lastSlash >= 0 ? typed.slice(lastSlash + 1) : typed;
       setFilePicker((prev) => ({ ...prev, filter }));
@@ -812,7 +878,7 @@ export function App() {
         }
       }
     }
-  }, [filePicker.active, filePicker.atPos, openFilePicker]);
+  }, [filePicker.active, filePicker.atPos, openFilePicker, closeFilePicker]);
 
   return (
     <div className="root-container">
@@ -876,7 +942,7 @@ export function App() {
           <textarea
             ref={inputRef}
             className="input-textarea"
-            placeholder="Queue another message…"
+            placeholder={state.sessionState.isStreaming ? "Enter to steer, Alt-Enter to add followup" : "Send a message\u2026"}
             onKeyDown={handleKeyDown}
             onInput={handleInput}
             rows={1}

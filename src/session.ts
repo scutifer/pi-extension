@@ -15,6 +15,7 @@ export class PiSession {
   private cwd: string = process.cwd();
   private gitBranch: string = "";
   private sessionName: string = "";
+  private debounceTimer: NodeJS.Timeout | null = null;
 
   async init(cwd: string) {
     this.cwd = cwd;
@@ -26,10 +27,20 @@ export class PiSession {
 
     this.unsubscribe = session.subscribe((event) => {
       const mapped = this.mapEvent(event);
-      if (mapped && this.onEvent) {
-        this.onEvent(mapped);
+      if (mapped) {
+        this.notifyEvent(mapped);
       }
     });
+  }
+
+  notifyEvent(event: AgentSessionEventData) {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+    this.debounceTimer = setTimeout(() => {
+      this.onEvent?.(event);
+      this.debounceTimer = null;
+    }, 200);
   }
 
   setEventHandler(handler: (event: AgentSessionEventData) => void) {
@@ -38,8 +49,20 @@ export class PiSession {
 
   async prompt(text: string) {
     if (!this.session) return;
-    this.onEvent?.({ type: "user_message", text });
+    this.notifyEvent({ type: "user_message", text });
     await this.session.prompt(text);
+  }
+
+  async steer(text: string) {
+    if (!this.session) return;
+    this.notifyEvent({ type: "user_message", text });
+    await this.session.steer(text);
+  }
+
+  async followUp(text: string) {
+    if (!this.session) return;
+    this.notifyEvent({ type: "user_message", text });
+    await this.session.followUp(text);
   }
 
   async abort() {
