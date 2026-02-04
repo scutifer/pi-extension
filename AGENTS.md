@@ -10,6 +10,7 @@ A VSCode extension that provides a chat UI for [pi](https://github.com/mariozech
 src/
 ├── extension.ts          # VSCode extension entry point. Registers commands: pi.openChat, pi.resumeSession
 ├── panel.ts              # PiPanel — manages WebviewPanel lifecycle, bridges webview ↔ PiSession
+├── viewProvider.ts       # PiViewProvider — sidebar webview view (activity bar). Lazy-inits session on first getState.
 ├── session.ts            # PiSession — wraps @mariozechner/pi-coding-agent's AgentSession
 └── webview/
     ├── index.tsx          # React mount point
@@ -32,6 +33,15 @@ src/
   1. `dist/extension.cjs` — Node/CJS for VSCode extension host. Externals: `vscode`, `@mariozechner/clipboard-*`
   2. `dist/webview.js` — Browser/IIFE for webview. CSS loaded as text strings (`.css` → `text` loader), injected at runtime via `<style>` tag.
 - Commands: `npm run build`, `npm run watch`
+
+## Sidebar vs Editor Tab
+
+There are two ways to open the chat UI, both rendering the same React webview:
+
+1. **Sidebar** (`viewProvider.ts` → `PiViewProvider`): Registered as a `WebviewViewProvider` on the `pi.chatView` view in the `pi-chat` activity bar container. The session is lazy-initialized — `PiSession.init()` is only called on the first `getState` message from the webview, not on `resolveWebviewView`. The sidebar view persists across file navigation.
+2. **Editor tab** (`panel.ts` → `PiPanel`): Opens a `WebviewPanel` as an editor tab via the `pi.openChat` command. Each tab gets its own `PiSession`. Also used by `pi.resumeSession` to load a saved `.jsonl` session file.
+
+Both use the same message protocol (`WebviewToExtension` / `ExtensionToWebview` in `types.ts`) and the same HTML/CSP template with a nonce'd script tag.
 
 ## Key Patterns
 

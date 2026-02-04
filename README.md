@@ -1,22 +1,19 @@
 # Pi Coding Agent - VSCode Extension
 
-A VSCode extension that brings the [Pi coding agent](https://github.com/mariozechner/pi-coding-agent) into your editor. Chat with an AI assistant that can read, write, and execute code directly in your workspace.
+A VSCode extension that brings the [Pi coding agent](https://github.com/badlogic/pi-mono) into your editor. Chat with an AI assistant that can read, write, and execute code directly in your workspace.
 
 ![VSCode ^1.85.0](https://img.shields.io/badge/VSCode-%5E1.85.0-blue)
 ![Version](https://img.shields.io/badge/version-0.1.6-green)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow)
 
 ## Features
+The extension provides 2 chat interfaces with streaming responses, markdown rendering, and syntax highlighting. The agent can read and write files, run shell commands, and browse your workspace.
 
-- **Interactive chat** -- streaming responses with markdown rendering and syntax highlighting
-- **Tool execution** -- the agent can read/write files, run shell commands, and browse your workspace
-- **Session management** -- save, resume, and branch conversation sessions
-- **Session tree navigation** -- explore and switch between conversation branches
-- **Multi-model support** -- switch between AI models and configure thinking levels at runtime
-- **Token and cost tracking** -- real-time counters for input/output tokens, cache usage, and estimated cost
-- **Context window monitoring** -- see how much of the model's context capacity is in use
-- **Git awareness** -- auto-detects the current branch in your workspace
-- **Theme support** -- follows your VSCode light/dark theme
+Invoke it either using the command palette, or as a sidebar entry. The sidebar view lives in its own activity bar icon and provides a persistent chat panel that stays open as you navigate files. The editor tab variant (`Pi: Open Chat`) gives you a full-width chat that can be split, moved, or pinned like any other editor tab.
+
+Sessions can be saved, resumed, and branched. A tree view lets you navigate between conversation branches. You can switch between AI models and adjust thinking levels during a session.
+
+The status bar shows input/output token counts, cache usage, estimated cost, and context window utilization. The extension detects the current git branch and follows your VSCode light or dark theme.
 
 ## Getting Started
 
@@ -24,10 +21,12 @@ A VSCode extension that brings the [Pi coding agent](https://github.com/mariozec
 
 ```bash
 npm install
-npm run build
+npm run clean && npm run build
 npm run package
 code --install-extension pi-extension-*.vsix
 ```
+
+Or drop the VSIX file into the extensions sidebar.
 
 ### Usage
 
@@ -36,6 +35,8 @@ code --install-extension pi-extension-*.vsix
 3. Type a message and press Enter to start a conversation
 
 To resume a previous session, run **Pi: Resume Session** from the command palette and select a saved `.jsonl` session file.
+
+By default, the resume command opens `~/.pi/agent/sessions` to pick a session.
 
 ## Commands
 
@@ -54,17 +55,7 @@ The settings dialog (accessible from the chat UI) lets you configure:
 
 ## Development
 
-```bash
-npm install          # Install dependencies
-npm run build        # Build the extension
-npm run watch        # Rebuild on changes
-npm run package      # Package as .vsix
-```
-
-The build produces two bundles via esbuild:
-
-- `dist/extension.cjs` -- extension host (Node.js, CommonJS)
-- `dist/webview.js` -- chat UI (browser, IIFE)
+Open the project and do `F5` (or `Run > Start Debugging`) to open the extension host. Open developer tools optionally, from the command palette.
 
 ## Architecture
 
