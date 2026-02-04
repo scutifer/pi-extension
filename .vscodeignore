@@ -1,5 +1,8 @@
 src/**
 node_modules/**
+!node_modules/@mariozechner/
+!node_modules/@mariozechner/clipboard-darwin-arm64/**
+!node_modules/@mariozechner/clipboard-darwin-universal/**
 .vscode/**
 .claude/**
 .git/**

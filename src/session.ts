@@ -2,7 +2,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { execSync } from "child_process";
 import type { AgentSessionEventData, HistoryMessage, SerializedContent } from "./webview/types.js";
-import { log } from "./extension.js";
+import { log } from "./log.js";
 
 import * as pi from "@mariozechner/pi-coding-agent";
 

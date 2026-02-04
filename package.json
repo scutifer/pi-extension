@@ -2,7 +2,9 @@
   "name": "pi-extension",
   "displayName": "Pi Coding Agent",
   "description": "VSCode extension for the Pi coding agent",
-  "version": "0.1.0",
+  "version": "0.1.6",
+  "icon": "assets/icon.png",
+  "publisher": "phaseshiftai",
   "repository": {
     "type": "git",
     "url": "https://github.com/phaseshiftai/pi-extension.git"
@@ -11,7 +13,6 @@
     "vscode": "^1.85.0"
   },
   "type": "module",
-  "activationEvents": [],
   "main": "./dist/extension.cjs",
   "contributes": {
     "commands": [
@@ -23,9 +24,31 @@
         "command": "pi.resumeSession",
         "title": "Pi: Resume Session"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pi-chat",
+          "title": "Pi",
+          "icon": {
+            "light": "assets/activitybar-light.png",
+            "dark": "assets/activitybar-dark.png"
+          }
+        }
+      ]
+    },
+    "views": {
+      "pi-chat": [
+        {
+          "type": "webview",
+          "id": "pi.chatView",
+          "name": "Chat"
+        }
+      ]
+    }
   },
   "scripts": {
+    "clean": "rm -rf dist",
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "package": "npx @vscode/vsce package"

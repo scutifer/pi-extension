@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { PiSession } from "./session";
-import { log } from "./extension";
+import { log } from "./log.js";
 
 import type { ExtensionToWebview, WebviewToExtension } from "./webview/types";
 
