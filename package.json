@@ -4,10 +4,10 @@
   "description": "VSCode extension for the Pi coding agent",
   "version": "0.1.6",
   "icon": "assets/icon.png",
-  "publisher": "phaseshiftai",
+  "publisher": "scutifer",
   "repository": {
     "type": "git",
-    "url": "https://github.com/phaseshiftai/pi-extension.git"
+    "url": "https://github.com/scutifer/pi-extension.git"
   },
   "engines": {
     "vscode": "^1.85.0"
